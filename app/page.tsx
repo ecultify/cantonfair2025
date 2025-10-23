@@ -74,6 +74,10 @@ export default function Dashboard() {
   const [showMediaCapture, setShowMediaCapture] = useState(false);
   const [mediaCaptureMode, setMediaCaptureMode] = useState<'photo' | 'video'>('photo');
   const [processing, setProcessing] = useState(false);
+  
+  // Detail View State
+  const [selectedCapture, setSelectedCapture] = useState<QuickCapture | null>(null);
+  const [showDetailView, setShowDetailView] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -227,6 +231,11 @@ export default function Dashboard() {
     capture.pocName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleCaptureClick = (capture: QuickCapture) => {
+    setSelectedCapture(capture);
+    setShowDetailView(true);
+  };
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -351,7 +360,11 @@ export default function Dashboard() {
         ) : (
           <div className="grid gap-4">
             {filteredCaptures.map((capture) => (
-              <Card key={capture.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={capture.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleCaptureClick(capture)}
+              >
                 <CardContent className="p-4">
                   <div className="flex gap-4 items-start">
                     {capture.mediaUrl && (
@@ -617,6 +630,110 @@ export default function Dashboard() {
         onCapture={handleMediaCapture}
         mode="both"
       />
+
+      {/* Detail View Dialog */}
+      <Dialog open={showDetailView} onOpenChange={setShowDetailView}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Capture Details</DialogTitle>
+            <DialogDescription>
+              {selectedCapture && new Date(selectedCapture.createdAt).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedCapture && (
+            <div className="space-y-6">
+              {/* Product Media Section */}
+              {selectedCapture.mediaUrl && (
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Image className="h-5 w-5 text-blue-600" />
+                    Product Media
+                  </Label>
+                  {selectedCapture.mediaType === 'photo' ? (
+                    <img
+                      src={selectedCapture.mediaUrl}
+                      alt={selectedCapture.productName}
+                      className="w-full h-auto max-h-96 object-contain rounded-lg border"
+                    />
+                  ) : (
+                    <video
+                      src={selectedCapture.mediaUrl}
+                      controls
+                      className="w-full h-auto max-h-96 object-contain rounded-lg border"
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Product Details Section */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  Product Details
+                </Label>
+                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                  <div>
+                    <Label className="text-sm text-slate-600">Product Name</Label>
+                    <p className="font-semibold text-lg">{selectedCapture.productName}</p>
+                  </div>
+                  {selectedCapture.remarks && (
+                    <div>
+                      <Label className="text-sm text-slate-600">Remarks</Label>
+                      <p className="text-sm whitespace-pre-wrap">{selectedCapture.remarks}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Visiting Card Section */}
+              {selectedCapture.visitingCardUrl && (
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-orange-600" />
+                    Visiting Card
+                  </Label>
+                  <img
+                    src={selectedCapture.visitingCardUrl}
+                    alt="Visiting Card"
+                    className="w-full h-auto max-h-64 object-contain bg-slate-100 rounded-lg border"
+                  />
+                </div>
+              )}
+
+              {/* POC Details Section */}
+              {(selectedCapture.pocName || selectedCapture.pocCompany || selectedCapture.pocCity) && (
+                <div className="space-y-3">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <Users className="h-5 w-5 text-purple-600" />
+                    POC Details
+                  </Label>
+                  <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                    {selectedCapture.pocName && (
+                      <div>
+                        <Label className="text-sm text-slate-600">Contact Name</Label>
+                        <p className="font-medium">{selectedCapture.pocName}</p>
+                      </div>
+                    )}
+                    {selectedCapture.pocCompany && (
+                      <div>
+                        <Label className="text-sm text-slate-600">Company</Label>
+                        <p className="font-medium">{selectedCapture.pocCompany}</p>
+                      </div>
+                    )}
+                    {selectedCapture.pocCity && (
+                      <div>
+                        <Label className="text-sm text-slate-600">City</Label>
+                        <p className="font-medium">{selectedCapture.pocCity}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
