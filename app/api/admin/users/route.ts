@@ -18,22 +18,33 @@ const supabaseAdmin = createClient(
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-async function getAuthenticatedUser() {
-  const cookieStore = cookies();
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false
-    }
-  });
+async function getAuthenticatedUser(request: Request) {
+  // Get the authorization header
+  const authHeader = request.headers.get('authorization');
+  
+  if (!authHeader) {
+    return null;
+  }
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Extract the token
+  const token = authHeader.replace('Bearer ', '');
+  
+  // Create a client with the user's token
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  
+  if (error || !user) {
+    return null;
+  }
+  
   return user;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     // Check if user is authenticated and is admin
-    const user = await getAuthenticatedUser();
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -71,7 +82,7 @@ export async function GET() {
 export async function DELETE(request: Request) {
   try {
     // Check if user is authenticated and is admin
-    const user = await getAuthenticatedUser();
+    const user = await getAuthenticatedUser(request);
     
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

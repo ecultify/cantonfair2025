@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2, Users, Mail, Phone, Calendar, Shield } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
+import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 interface User {
@@ -32,10 +33,24 @@ export default function UserManagement() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users');
+      
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found');
+      }
+      
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to load users');
       }
+      
       const data = await response.json();
       setUsers(data.users);
     } catch (error) {
@@ -49,10 +64,19 @@ export default function UserManagement() {
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     try {
       setDeletingUserId(userId);
+      
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found');
+      }
+      
       const response = await fetch('/api/admin/users', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ userId }),
       });
