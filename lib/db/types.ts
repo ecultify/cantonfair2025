@@ -30,7 +30,7 @@ export interface QuickCapture {
   mediaThumbUrl?: string;
   
   // Remarks & Product Name
-  productName: string;
+  productName?: string;
   remarks?: string;
   
   // Visiting Card
@@ -61,7 +61,7 @@ export interface CreateQuickCaptureInput {
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
-  productName: string;
+  productName?: string;
   remarks?: string;
   visitingCardUrl?: string;
   cardOcrJson?: any;

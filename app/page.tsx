@@ -61,7 +61,7 @@ interface QuickCapture {
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
-  productName: string;
+  productName?: string;
   remarks?: string;
   visitingCardUrl?: string;
   pocName?: string;
@@ -211,11 +211,6 @@ export default function Dashboard() {
       return;
     }
 
-    if (!formData.productName.trim()) {
-      toast.error("Product name is required");
-      return;
-    }
-
     try {
       setProcessing(true);
 
@@ -246,7 +241,7 @@ export default function Dashboard() {
   };
 
   const filteredCaptures = quickCaptures.filter((capture) =>
-    capture.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    capture.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     capture.pocCompany?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     capture.pocName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -437,7 +432,7 @@ export default function Dashboard() {
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg text-slate-900 truncate">
-                        {capture.productName}
+                        {capture.productName || 'Untitled Capture'}
                       </h3>
                       {capture.remarks && (
                         <p className="text-sm text-slate-600 line-clamp-2 mt-1">
@@ -558,10 +553,9 @@ export default function Dashboard() {
                 </Label>
                 <Input
                   id="productName"
-                  placeholder="Enter product name"
+                  placeholder="Enter product name (optional)"
                   value={formData.productName}
                   onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
-                  required
                   className="mt-1"
                 />
               </div>
@@ -680,7 +674,7 @@ export default function Dashboard() {
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={processing || !formData.productName.trim()}
+                disabled={processing}
               >
                 {processing ? "Saving..." : "Save Quick Capture"}
               </Button>
@@ -741,10 +735,12 @@ export default function Dashboard() {
                   Product Details
                 </Label>
                 <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-                  <div>
-                    <Label className="text-sm text-slate-600">Product Name</Label>
-                    <p className="font-semibold text-lg">{selectedCapture.productName}</p>
-                  </div>
+                  {selectedCapture.productName && (
+                    <div>
+                      <Label className="text-sm text-slate-600">Product Name</Label>
+                      <p className="font-semibold text-lg">{selectedCapture.productName}</p>
+                    </div>
+                  )}
                   {selectedCapture.remarks && (
                     <div>
                       <Label className="text-sm text-slate-600">Remarks</Label>
@@ -823,7 +819,7 @@ export default function Dashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Capture</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{captureToDelete?.productName}"? This action cannot be undone.
+              Are you sure you want to delete {captureToDelete?.productName ? `"${captureToDelete.productName}"` : 'this capture'}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
