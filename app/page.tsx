@@ -17,6 +17,7 @@ import {
   Users,
   Upload,
   LogOut,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import Link from "next/link";
 import type { Vendor } from "@/lib/db/types";
@@ -79,6 +91,10 @@ export default function Dashboard() {
   // Detail View State
   const [selectedCapture, setSelectedCapture] = useState<QuickCapture | null>(null);
   const [showDetailView, setShowDetailView] = useState(false);
+  
+  // Delete State
+  const [captureToDelete, setCaptureToDelete] = useState<QuickCapture | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -240,6 +256,30 @@ export default function Dashboard() {
     setShowDetailView(true);
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, capture: QuickCapture) => {
+    e.stopPropagation(); // Prevent opening detail view
+    setCaptureToDelete(capture);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!captureToDelete) return;
+    
+    try {
+      setProcessing(true);
+      await dataService.quickCaptures.delete(captureToDelete.id);
+      toast.success("Capture deleted successfully!");
+      setShowDeleteDialog(false);
+      setCaptureToDelete(null);
+      await loadQuickCaptures(); // Refresh the list
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete capture");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
@@ -366,10 +406,18 @@ export default function Dashboard() {
             {filteredCaptures.map((capture) => (
               <Card 
                 key={capture.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
+                className="hover:shadow-lg transition-shadow cursor-pointer relative"
                 onClick={() => handleCaptureClick(capture)}
               >
-                <CardContent className="p-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 z-10"
+                  onClick={(e) => handleDeleteClick(e, capture)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <CardContent className="p-4 pr-12">
                   <div className="flex gap-4 items-start">
                     {capture.mediaUrl && (
                       <div className="w-20 h-20 flex-shrink-0">
@@ -763,6 +811,28 @@ export default function Dashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Capture</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{captureToDelete?.productName}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={processing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {processing ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
