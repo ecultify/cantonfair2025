@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth/context";
 import { dataService } from "@/lib/data";
 import { performOCR } from "@/lib/utils/ocr";
 import { MediaCapture } from "@/components/media-capture";
-import UserManagement from "@/components/user-management";
 import {
   Package,
   Search,
@@ -89,7 +88,6 @@ export default function Dashboard() {
   
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showUserManagement, setShowUserManagement] = useState(false);
 
   // Quick Add Form State
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -141,8 +139,13 @@ export default function Dashboard() {
 
   const checkAdminStatus = async () => {
     if (!user) return;
-    // Hardcode ecultify@gmail.com as the only admin
-    setIsAdmin(user.email === 'ecultify@gmail.com');
+    try {
+      const adminStatus = await dataService.admin.isAdmin(user.id);
+      setIsAdmin(adminStatus);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      setIsAdmin(false);
+    }
   };
 
   const loadQuickCaptures = async () => {
@@ -405,33 +408,33 @@ export default function Dashboard() {
                 </Button>
               </form>
             ) : (
-              <form onSubmit={handleAuth} className="space-y-4">
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <Button type="submit" className="w-full" size="lg">
-                  {authMode === "signin" ? "Sign In" : "Sign Up"}
-                </Button>
+            <form onSubmit={handleAuth} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" size="lg">
+                {authMode === "signin" ? "Sign In" : "Sign Up"}
+              </Button>
                 <div className="flex flex-col gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full"
-                    onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
-                  >
-                    {authMode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
-                  </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
+              >
+                {authMode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
+              </Button>
                   {authMode === "signin" && (
                     <Button
                       type="button"
@@ -443,7 +446,7 @@ export default function Dashboard() {
                     </Button>
                   )}
                 </div>
-              </form>
+            </form>
             )}
           </CardContent>
         </Card>
@@ -488,13 +491,12 @@ export default function Dashboard() {
                 <DropdownMenuSeparator />
                 {isAdmin && (
                   <>
-                    <DropdownMenuItem 
-                      onClick={() => setShowUserManagement(true)} 
-                      className="cursor-pointer"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      User Management
-                    </DropdownMenuItem>
+                    <Link href="/admin/users">
+                      <DropdownMenuItem className="cursor-pointer">
+                        <Shield className="h-4 w-4 mr-2" />
+                        User Management
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuSeparator />
                   </>
                 )}
@@ -1036,19 +1038,6 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* User Management Dialog */}
-      <Dialog open={showUserManagement} onOpenChange={setShowUserManagement}>
-        <DialogContent className="max-w-6xl w-[calc(100vw-2rem)] sm:w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0">
-          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
-            <DialogTitle>User Management</DialogTitle>
-            <DialogDescription>Manage all registered users</DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(90vh - 100px)' }}>
-            <UserManagement />
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
