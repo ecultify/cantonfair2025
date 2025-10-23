@@ -989,6 +989,7 @@ export const supabaseAdapter: DataAdapter = {
         mediaType: row.media_type,
         mediaUrl: row.media_url,
         mediaThumbUrl: row.media_thumb_url,
+        mediaItems: row.media_items || [],
         productName: row.product_name,
         remarks: row.remarks,
         visitingCardUrl: row.visiting_card_url,
@@ -1022,6 +1023,7 @@ export const supabaseAdapter: DataAdapter = {
         mediaType: (data as any).media_type,
         mediaUrl: (data as any).media_url,
         mediaThumbUrl: (data as any).media_thumb_url,
+        mediaItems: (data as any).media_items || [],
         productName: (data as any).product_name,
         remarks: (data as any).remarks,
         visitingCardUrl: (data as any).visiting_card_url,
@@ -1047,6 +1049,7 @@ export const supabaseAdapter: DataAdapter = {
           media_type: capture.mediaType,
           media_url: capture.mediaUrl,
           media_thumb_url: capture.mediaThumbUrl,
+          media_items: capture.mediaItems || [],
           product_name: capture.productName,
           remarks: capture.remarks,
           visiting_card_url: capture.visitingCardUrl,
@@ -1069,6 +1072,7 @@ export const supabaseAdapter: DataAdapter = {
         mediaType: (data as any).media_type,
         mediaUrl: (data as any).media_url,
         mediaThumbUrl: (data as any).media_thumb_url,
+        mediaItems: (data as any).media_items || [],
         productName: (data as any).product_name,
         remarks: (data as any).remarks,
         visitingCardUrl: (data as any).visiting_card_url,
@@ -1091,6 +1095,7 @@ export const supabaseAdapter: DataAdapter = {
       if (capture.mediaType !== undefined) updateData.media_type = capture.mediaType;
       if (capture.mediaUrl !== undefined) updateData.media_url = capture.mediaUrl;
       if (capture.mediaThumbUrl !== undefined) updateData.media_thumb_url = capture.mediaThumbUrl;
+      if (capture.mediaItems !== undefined) updateData.media_items = capture.mediaItems;
       if (capture.productName !== undefined) updateData.product_name = capture.productName;
       if (capture.remarks !== undefined) updateData.remarks = capture.remarks;
       if (capture.visitingCardUrl !== undefined) updateData.visiting_card_url = capture.visitingCardUrl;
@@ -1117,6 +1122,7 @@ export const supabaseAdapter: DataAdapter = {
         mediaType: (data as any).media_type,
         mediaUrl: (data as any).media_url,
         mediaThumbUrl: (data as any).media_thumb_url,
+        mediaItems: (data as any).media_items || [],
         productName: (data as any).product_name,
         remarks: (data as any).remarks,
         visitingCardUrl: (data as any).visiting_card_url,

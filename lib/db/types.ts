@@ -21,13 +21,22 @@ export interface Vendor {
   updatedAt: Date;
 }
 
+export interface MediaItem {
+  type: 'photo' | 'video';
+  url: string;
+  thumbUrl?: string;
+}
+
 export interface QuickCapture {
   id: string;
   
-  // Product Media
+  // Product Media (legacy single item support)
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
+  
+  // Product Media (new multiple items support)
+  mediaItems?: MediaItem[];
   
   // Remarks & Product Name
   productName?: string;
@@ -63,6 +72,7 @@ export interface CreateQuickCaptureInput {
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
+  mediaItems?: MediaItem[];
   productName?: string;
   remarks?: string;
   visitingCardUrl?: string;

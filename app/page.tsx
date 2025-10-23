@@ -57,11 +57,18 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { Vendor } from "@/lib/db/types";
 
+interface MediaItem {
+  type: 'photo' | 'video';
+  url: string;
+  thumbUrl?: string;
+}
+
 interface QuickCapture {
   id: string;
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
+  mediaItems?: MediaItem[];
   productName?: string;
   remarks?: string;
   visitingCardUrl?: string;
@@ -105,10 +112,8 @@ export default function Dashboard() {
 
   // Form Data
   const [formData, setFormData] = useState({
-    // Section 1: Product Media
-    productMediaType: null as 'photo' | 'video' | null,
-    productMediaUrl: "",
-    productMediaThumb: "",
+    // Section 1: Product Media (Multiple items support)
+    productMediaItems: [] as MediaItem[],
     
     // Section 2: Product Details
     productName: "",
@@ -192,9 +197,7 @@ export default function Dashboard() {
 
   const resetForm = () => {
     setFormData({
-      productMediaType: null,
-      productMediaUrl: "",
-      productMediaThumb: "",
+      productMediaItems: [],
       productName: "",
       remarks: "",
       visitingCardUrl: "",
@@ -209,13 +212,20 @@ export default function Dashboard() {
 
   const handleMediaCapture = async (dataUrl: string, type: 'photo' | 'video') => {
     if (currentCaptureTarget === 'product') {
+      // Add the new media item to the array
+      const newMediaItem: MediaItem = {
+        type,
+        url: dataUrl,
+        thumbUrl: type === 'photo' ? dataUrl : "",
+      };
+      
       setFormData(prev => ({
         ...prev,
-        productMediaType: type,
-        productMediaUrl: dataUrl,
-        productMediaThumb: type === 'photo' ? dataUrl : "", // For video, you'd generate a thumbnail
+        productMediaItems: [...prev.productMediaItems, newMediaItem],
       }));
-      toast.success(`Product ${type} captured!`);
+      
+      const count = formData.productMediaItems.length + 1;
+      toast.success(`Product ${type} ${count} captured!`);
     } else if (currentCaptureTarget === 'card') {
       setFormData(prev => ({
         ...prev,
@@ -391,9 +401,7 @@ export default function Dashboard() {
       setProcessing(true);
 
       await dataService.quickCaptures.create({
-        mediaType: formData.productMediaType || undefined,
-        mediaUrl: formData.productMediaUrl || undefined,
-        mediaThumbUrl: formData.productMediaThumb || undefined,
+        mediaItems: formData.productMediaItems,
         productName: formData.productName,
         remarks: formData.remarks || undefined,
         visitingCardUrl: formData.visitingCardUrl || undefined,
@@ -642,19 +650,24 @@ export default function Dashboard() {
                 </Button>
                 <CardContent className="p-4 pr-12">
                   <div className="flex gap-4 items-start">
-                    {capture.mediaUrl && (
-                      <div className="w-20 h-20 flex-shrink-0">
-                        {capture.mediaType === 'photo' ? (
+                    {capture.mediaItems && capture.mediaItems.length > 0 && (
+                      <div className="w-20 h-20 flex-shrink-0 relative">
+                        {capture.mediaItems[0].type === 'photo' ? (
                           <img
-                            src={capture.mediaThumbUrl || capture.mediaUrl}
+                            src={capture.mediaItems[0].thumbUrl || capture.mediaItems[0].url}
                             alt={capture.productName}
                             className="w-full h-full object-cover rounded-lg"
                           />
                         ) : (
                           <video
-                            src={capture.mediaUrl}
+                            src={capture.mediaItems[0].url}
                             className="w-full h-full object-cover rounded-lg"
                           />
+                        )}
+                        {capture.mediaItems.length > 1 && (
+                          <div className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                            +{capture.mediaItems.length - 1}
+                          </div>
                         )}
                       </div>
                     )}
@@ -715,57 +728,71 @@ export default function Dashboard() {
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
 
           <form onSubmit={handleSubmitQuickCapture} className="space-y-6">
-            {/* Section 1: Product Photo/Video */}
+            {/* Section 1: Product Photo/Video (Multiple) */}
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <Image className="h-5 w-5 text-blue-600" />
-                1. Product Photo/Video
+                1. Product Photos/Videos
+                {formData.productMediaItems.length > 0 && (
+                  <span className="text-xs font-normal text-gray-500">
+                    ({formData.productMediaItems.length} item{formData.productMediaItems.length > 1 ? 's' : ''})
+                  </span>
+                )}
               </Label>
               
-              {formData.productMediaUrl ? (
-                <div className="relative">
-                  {formData.productMediaType === 'photo' ? (
-                    <img
-                      src={formData.productMediaUrl}
-                      alt="Product"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                  ) : (
-                    <video
-                      src={formData.productMediaUrl}
-                      controls
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    className="absolute top-2 right-2"
-                    onClick={() => setFormData(prev => ({
-                      ...prev,
-                      productMediaType: null,
-                      productMediaUrl: "",
-                      productMediaThumb: "",
-                    }))}
-                  >
-                    Remove
-                  </Button>
+              {/* Display captured media items */}
+              {formData.productMediaItems.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {formData.productMediaItems.map((item, index) => (
+                    <div key={index} className="relative">
+                      {item.type === 'photo' ? (
+                        <img
+                          src={item.url}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <video
+                          src={item.url}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-6 w-6"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            productMediaItems: prev.productMediaItems.filter((_, i) => i !== index),
+                          }));
+                          toast.success("Media removed");
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                        {item.type === 'photo' ? '📷' : '🎥'} {index + 1}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-24 border-dashed border-2"
-                  onClick={() => {
-                    setCurrentCaptureTarget('product');
-                    setShowMediaCapture(true);
-                  }}
-                >
-                  <Upload className="h-6 w-6 mr-2" />
-                  Capture Photo or Video
-                </Button>
               )}
+              
+              {/* Add more media button */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-16 border-dashed border-2"
+                onClick={() => {
+                  setCurrentCaptureTarget('product');
+                  setShowMediaCapture(true);
+                }}
+              >
+                <Upload className="h-5 w-5 mr-2" />
+                {formData.productMediaItems.length > 0 ? 'Add Another Photo/Video' : 'Capture Photo or Video'}
+              </Button>
             </div>
 
             {/* Section 2: Product Name & Remarks */}
@@ -966,25 +993,34 @@ export default function Dashboard() {
           {selectedCapture && (
             <div className="space-y-6">
               {/* Product Media Section */}
-              {selectedCapture.mediaUrl && (
+              {selectedCapture.mediaItems && selectedCapture.mediaItems.length > 0 && (
                 <div className="space-y-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Image className="h-5 w-5 text-blue-600" />
-                    Product Media
+                    Product Media ({selectedCapture.mediaItems.length})
                   </Label>
-                  {selectedCapture.mediaType === 'photo' ? (
-                    <img
-                      src={selectedCapture.mediaUrl}
-                      alt={selectedCapture.productName}
-                      className="w-full h-auto max-h-96 object-contain rounded-lg border"
-                    />
-                  ) : (
-                    <video
-                      src={selectedCapture.mediaUrl}
-                      controls
-                      className="w-full h-auto max-h-96 object-contain rounded-lg border"
-                    />
-                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {selectedCapture.mediaItems.map((item, index) => (
+                      <div key={index} className="relative">
+                        {item.type === 'photo' ? (
+                          <img
+                            src={item.url}
+                            alt={`Product ${index + 1}`}
+                            className="w-full h-auto max-h-64 object-contain rounded-lg border"
+                          />
+                        ) : (
+                          <video
+                            src={item.url}
+                            controls
+                            className="w-full h-auto max-h-64 object-contain rounded-lg border"
+                          />
+                        )}
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                          {item.type === 'photo' ? '📷 Photo' : '🎥 Video'} {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
