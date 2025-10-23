@@ -222,52 +222,70 @@ export default function Dashboard() {
         visitingCardUrl: dataUrl,
       }));
       
-      // Note: OCR will be processed when user clicks on the card image
-      toast.success("Visiting card captured! Click on the card to extract details.");
+      // Automatically extract details from visiting card
+      toast.success("Visiting card captured! Extracting details...");
+      
+      // Trigger OCR automatically
+      setTimeout(async () => {
+        await processVisitingCardOCR(dataUrl);
+      }, 500);
     }
     setCurrentCaptureTarget(null);
   };
 
-  const handleProcessVisitingCard = async () => {
-    if (!formData.visitingCardUrl) {
+  const processVisitingCardOCR = async (imageUrl: string) => {
+    if (!imageUrl) {
       toast.error("No visiting card to process");
       return;
     }
 
     try {
       setProcessing(true);
-      toast.info("Processing visiting card...");
       
-      const ocrText = await performOCR(formData.visitingCardUrl);
+      const ocrText = await performOCR(imageUrl);
       
       // Extract information from OCR text
-      const lines = ocrText.split('\n').filter(line => line.trim());
+      const lines = ocrText.split('\n').filter(line => line.trim()).map(l => l.trim());
       
-      // Extract email
-      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      // Extract email - more aggressive pattern
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
       const emails = ocrText.match(emailRegex);
-      const pocEmail = emails ? emails[0] : "";
+      const pocEmail = emails ? emails[0].toLowerCase() : "";
       
-      // Extract phone numbers (international and local formats)
-      const phoneRegex = /[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}/g;
-      const phones = ocrText.match(phoneRegex)?.filter(p => p.replace(/\D/g, '').length >= 7);
-      const pocPhone = phones ? phones[0] : "";
+      // Extract phone numbers - improved pattern for Chinese numbers
+      const phoneRegex = /(?:\+?86)?[\s-]?1[3-9]\d{9}|(?:\+?86)?[\s-]?\d{3,4}[\s-]?\d{7,8}|[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{4,}/g;
+      const phones = ocrText.match(phoneRegex)?.filter(p => {
+        const digits = p.replace(/\D/g, '');
+        return digits.length >= 7 && digits.length <= 15;
+      });
+      const pocPhone = phones ? phones[0].trim() : "";
       
-      // Extract URLs/links
-      const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|io|co|cn)[^\s]*)/gi;
+      // Extract URLs/links - improved pattern
+      const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|io|co|cn|edu|gov)[^\s]*)/gi;
       const urls = ocrText.match(urlRegex);
-      const pocLink = urls ? (urls[0].startsWith('http') ? urls[0] : 'https://' + urls[0]) : "";
+      let pocLink = "";
+      if (urls && urls.length > 0) {
+        pocLink = urls[0].toLowerCase();
+        if (!pocLink.startsWith('http')) {
+          pocLink = 'https://' + pocLink;
+        }
+        // Clean up any trailing punctuation
+        pocLink = pocLink.replace(/[,;.]$/, '');
+      }
       
-      // Try to extract name (usually first line or lines before email/phone)
-      const pocName = lines[0] || "";
+      // Extract name - first non-empty line that's not too long
+      const pocName = lines.find(line => line.length > 0 && line.length < 50 && !emailRegex.test(line) && !urlRegex.test(line)) || (lines[0] || "");
       
-      // Try to extract company (usually second line or after name)
-      const pocCompany = lines.length > 1 ? lines[1] : "";
+      // Extract company - second line or line with company indicators
+      const companyKeywords = /ltd|limited|inc|corp|corporation|company|co\.|group|enterprise|trading|international/i;
+      const pocCompany = lines.find(line => companyKeywords.test(line)) || (lines.length > 1 ? lines[1] : "");
       
-      // Try to extract city (look for common city patterns or just use third line)
-      const cityPattern = /\b(city|City|CITY|Province|州|市)\b/;
-      const cityLine = lines.find(line => cityPattern.test(line)) || (lines.length > 2 ? lines[2] : "");
-      const pocCity = cityLine.replace(/\b(city|City|CITY|Province|州|市)\b/g, '').trim();
+      // Extract city - look for patterns or take line with city-related keywords
+      const cityPattern = /\b(city|City|CITY|Province|州|市|区|district)\b/i;
+      const cityLine = lines.find(line => cityPattern.test(line)) || 
+                       lines.find(line => line.length > 2 && line.length < 30 && !emailRegex.test(line) && !phoneRegex.test(line)) ||
+                       (lines.length > 2 ? lines[2] : "");
+      const pocCity = cityLine.replace(/\b(city|City|CITY|Province|州|市|区|district)\b/gi, '').trim();
       
       // Update form data
       setFormData(prev => ({
@@ -280,10 +298,10 @@ export default function Dashboard() {
         pocLink: pocLink || prev.pocLink,
       }));
       
-      toast.success("Card details extracted! Please review and edit as needed.");
+      toast.success("✅ Details extracted! Please review and edit as needed.");
     } catch (error) {
       console.error("OCR processing error:", error);
-      toast.error("Failed to process visiting card");
+      toast.error("⚠️ Could not extract details. Please fill manually.");
     } finally {
       setProcessing(false);
     }
@@ -723,35 +741,23 @@ export default function Dashboard() {
                   <img
                     src={formData.visitingCardUrl}
                     alt="Visiting Card"
-                    className="w-full h-40 object-contain bg-slate-100 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={handleProcessVisitingCard}
-                    title="Click to extract details from card"
+                    className="w-full h-40 object-contain bg-slate-100 rounded-lg"
                   />
                   <Button
                     type="button"
                     size="sm"
                     variant="destructive"
                     className="absolute top-2 right-2 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFormData(prev => ({ ...prev, visitingCardUrl: "" }));
-                    }}
+                    onClick={() => setFormData(prev => ({ ...prev, visitingCardUrl: "" }))}
                   >
                     Remove
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="absolute bottom-2 right-2 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleProcessVisitingCard();
-                    }}
-                    disabled={processing}
-                  >
-                    {processing ? "Processing..." : "Extract Details"}
-                  </Button>
+                  {processing && (
+                    <div className="absolute bottom-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Extracting details...
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Button
