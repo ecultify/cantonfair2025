@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Video, X, Check, RotateCcw } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -45,9 +45,9 @@ export function MediaCapture({
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        videoRef.current.onloadedmetadata = () => {
-          setIsCameraReady(true);
-        };
+        // Play the video immediately
+        await videoRef.current.play();
+        setIsCameraReady(true);
       }
     } catch (error) {
       console.error("Camera error:", error);
@@ -55,10 +55,22 @@ export function MediaCapture({
     }
   }, [captureMode]);
 
+  // Start camera when modal opens
+  useEffect(() => {
+    if (open && !preview) {
+      startCamera();
+    }
+    return () => {
+      // Cleanup when modal closes
+      stopCamera();
+    };
+  }, [open, preview, startCamera, stopCamera]);
+
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
+      setIsCameraReady(false);
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
@@ -138,31 +150,21 @@ export function MediaCapture({
   }, [captureMode, startCamera]);
 
   const handleClose = useCallback(() => {
-    stopCamera();
     setPreview(null);
     setIsRecording(false);
-    setIsCameraReady(false);
     onOpenChange(false);
-  }, [stopCamera, onOpenChange]);
-
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    if (isOpen) {
-      startCamera();
-    } else {
-      handleClose();
-    }
-  }, [startCamera, handleClose]);
+  }, [onOpenChange]);
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] p-0">
-        <SheetHeader className="p-4 border-b">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
+        <SheetHeader className="p-4 border-b flex-shrink-0">
           <SheetTitle>
             {preview ? "Preview" : captureMode === 'photo' ? "Take Photo" : "Record Video"}
           </SheetTitle>
         </SheetHeader>
 
-        <div className="relative h-[calc(90vh-140px)] bg-black">
+        <div className="relative flex-1 bg-black overflow-hidden">
           {!preview ? (
             <>
               <video
