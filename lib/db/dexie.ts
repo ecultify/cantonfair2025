@@ -165,6 +165,7 @@ export interface QuickCapture {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocLink?: string;
   
   // Metadata
   userId: string;
@@ -184,6 +185,7 @@ export interface CreateQuickCaptureInput {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocLink?: string;
   userId: string;
   vendorId?: string;
 }

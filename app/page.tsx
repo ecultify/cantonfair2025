@@ -55,6 +55,7 @@ interface QuickCapture {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocLink?: string;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -97,6 +98,7 @@ export default function Dashboard() {
     pocName: "",
     pocCompany: "",
     pocCity: "",
+    pocLink: "",
   });
 
   const [currentCaptureTarget, setCurrentCaptureTarget] = useState<'product' | 'card' | null>(null);
@@ -150,6 +152,7 @@ export default function Dashboard() {
       pocName: "",
       pocCompany: "",
       pocCity: "",
+      pocLink: "",
     });
   };
 
@@ -210,6 +213,7 @@ export default function Dashboard() {
         pocName: formData.pocName || undefined,
         pocCompany: formData.pocCompany || undefined,
         pocCity: formData.pocCity || undefined,
+        pocLink: formData.pocLink || undefined,
         userId: user.id,
       });
 
@@ -606,6 +610,18 @@ export default function Dashboard() {
                   className="mt-1"
                 />
               </div>
+
+              <div>
+                <Label htmlFor="pocLink" className="text-sm">Website/Link</Label>
+                <Input
+                  id="pocLink"
+                  type="url"
+                  placeholder="Enter website or social media link"
+                  value={formData.pocLink}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pocLink: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
             </div>
 
             {/* Submit Button */}
@@ -702,7 +718,7 @@ export default function Dashboard() {
               )}
 
               {/* POC Details Section */}
-              {(selectedCapture.pocName || selectedCapture.pocCompany || selectedCapture.pocCity) && (
+              {(selectedCapture.pocName || selectedCapture.pocCompany || selectedCapture.pocCity || selectedCapture.pocLink) && (
                 <div className="space-y-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Users className="h-5 w-5 text-purple-600" />
@@ -725,6 +741,19 @@ export default function Dashboard() {
                       <div>
                         <Label className="text-sm text-slate-600">City</Label>
                         <p className="font-medium">{selectedCapture.pocCity}</p>
+                      </div>
+                    )}
+                    {selectedCapture.pocLink && (
+                      <div>
+                        <Label className="text-sm text-slate-600">Website/Link</Label>
+                        <a 
+                          href={selectedCapture.pocLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-600 hover:underline break-all"
+                        >
+                          {selectedCapture.pocLink}
+                        </a>
                       </div>
                     )}
                   </div>

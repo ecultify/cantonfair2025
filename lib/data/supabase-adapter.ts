@@ -996,6 +996,7 @@ export const supabaseAdapter: DataAdapter = {
         pocName: row.poc_name,
         pocCompany: row.poc_company,
         pocCity: row.poc_city,
+        pocLink: row.poc_link,
         userId: row.user_id,
         vendorId: row.vendor_id,
         createdAt: new Date(row.created_at),
@@ -1026,6 +1027,7 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
         createdAt: new Date((data as any).created_at),
@@ -1048,6 +1050,7 @@ export const supabaseAdapter: DataAdapter = {
           poc_name: capture.pocName,
           poc_company: capture.pocCompany,
           poc_city: capture.pocCity,
+          poc_link: capture.pocLink,
           user_id: capture.userId,
           vendor_id: capture.vendorId,
         } as any)
@@ -1067,6 +1070,7 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
         createdAt: new Date((data as any).created_at),
@@ -1086,6 +1090,7 @@ export const supabaseAdapter: DataAdapter = {
       if (capture.pocName !== undefined) updateData.poc_name = capture.pocName;
       if (capture.pocCompany !== undefined) updateData.poc_company = capture.pocCompany;
       if (capture.pocCity !== undefined) updateData.poc_city = capture.pocCity;
+      if (capture.pocLink !== undefined) updateData.poc_link = capture.pocLink;
       if (capture.vendorId !== undefined) updateData.vendor_id = capture.vendorId;
       updateData.updated_at = new Date().toISOString();
 
@@ -1109,6 +1114,7 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
         createdAt: new Date((data as any).created_at),
