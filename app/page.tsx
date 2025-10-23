@@ -244,61 +244,133 @@ export default function Dashboard() {
       
       const ocrText = await extractTextFromImage(imageUrl);
       
-      // Extract information from OCR text
+      // Extract information from OCR text with intelligent detection
       const lines = ocrText.split('\n').filter(line => line.trim()).map(l => l.trim());
       
-      // Extract email - more aggressive pattern
-      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
+      // === EMAIL EXTRACTION ===
+      // Only accept valid email formats
+      const emailRegex = /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/gi;
       const emails = ocrText.match(emailRegex);
-      const pocEmail = emails ? emails[0].toLowerCase() : "";
+      let pocEmail = "";
+      if (emails && emails.length > 0) {
+        // Validate email has proper domain
+        const validEmail = emails.find(e => {
+          const parts = e.toLowerCase().split('@');
+          return parts.length === 2 && parts[1].includes('.');
+        });
+        pocEmail = validEmail ? validEmail.toLowerCase() : "";
+      }
       
-      // Extract phone numbers - improved pattern for Chinese numbers
-      const phoneRegex = /(?:\+?86)?[\s-]?1[3-9]\d{9}|(?:\+?86)?[\s-]?\d{3,4}[\s-]?\d{7,8}|[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{4,}/g;
-      const phones = ocrText.match(phoneRegex)?.filter(p => {
-        const digits = p.replace(/\D/g, '');
-        return digits.length >= 7 && digits.length <= 15;
-      });
-      const pocPhone = phones ? phones[0].trim() : "";
+      // === PHONE EXTRACTION ===
+      // Match various international and Chinese phone formats
+      const phoneRegex = /(?:\+?86[-\s]?)?1[3-9]\d{9}|\+?\d{1,4}[-\s]?\(?\d{1,4}\)?[-\s]?\d{3,4}[-\s]?\d{3,4}/g;
+      const phones = ocrText.match(phoneRegex);
+      let pocPhone = "";
+      if (phones && phones.length > 0) {
+        // Validate phone number length (7-15 digits)
+        const validPhone = phones.find(p => {
+          const digits = p.replace(/\D/g, '');
+          return digits.length >= 7 && digits.length <= 15;
+        });
+        if (validPhone) {
+          pocPhone = validPhone.trim();
+        }
+      }
       
-      // Extract URLs/links - improved pattern
-      const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|io|co|cn|edu|gov)[^\s]*)/gi;
+      // === WEBSITE/LINK EXTRACTION ===
+      // Detect URLs and domain names intelligently
+      const urlRegex = /(https?:\/\/[^\s,;]+)|(\bwww\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}[^\s,;]*)|(\b[a-zA-Z0-9-]+\.(com|net|org|io|co|cn|edu|gov|biz|info)[^\s,;]*)/gi;
       const urls = ocrText.match(urlRegex);
       let pocLink = "";
       if (urls && urls.length > 0) {
-        pocLink = urls[0].toLowerCase();
-        if (!pocLink.startsWith('http')) {
-          pocLink = 'https://' + pocLink;
+        let detectedUrl = urls[0].trim();
+        
+        // Remove common OCR artifacts and trailing punctuation
+        detectedUrl = detectedUrl.replace(/[,;.\s]+$/, '');
+        
+        // Add https:// prefix if not present
+        if (!detectedUrl.startsWith('http://') && !detectedUrl.startsWith('https://')) {
+          detectedUrl = 'https://' + detectedUrl;
         }
-        // Clean up any trailing punctuation
-        pocLink = pocLink.replace(/[,;.]$/, '');
+        
+        // Validate URL format
+        try {
+          new URL(detectedUrl);
+          pocLink = detectedUrl.toLowerCase();
+        } catch {
+          // Invalid URL, leave empty
+          pocLink = "";
+        }
       }
       
-      // Extract name - first non-empty line that's not too long
-      const pocName = lines.find(line => line.length > 0 && line.length < 50 && !emailRegex.test(line) && !urlRegex.test(line)) || (lines[0] || "");
+      // === NAME EXTRACTION ===
+      // First substantial line that's not contact info
+      let pocName = "";
+      for (const line of lines) {
+        if (line.length >= 2 && line.length <= 50 &&
+            !emailRegex.test(line) && 
+            !urlRegex.test(line) &&
+            !phoneRegex.test(line) &&
+            !/^\d+$/.test(line)) { // Not just numbers
+          pocName = line;
+          break;
+        }
+      }
       
-      // Extract company - second line or line with company indicators
-      const companyKeywords = /ltd|limited|inc|corp|corporation|company|co\.|group|enterprise|trading|international/i;
-      const pocCompany = lines.find(line => companyKeywords.test(line)) || (lines.length > 1 ? lines[1] : "");
+      // === COMPANY EXTRACTION ===
+      // Look for lines with company indicators
+      const companyKeywords = /\b(ltd|limited|inc|corp|corporation|company|co\.|group|enterprise|trading|international|holdings|tech|technology|solutions|services|industries)\b/i;
+      let pocCompany = "";
+      for (const line of lines) {
+        if (companyKeywords.test(line) && 
+            line !== pocName &&
+            !emailRegex.test(line) &&
+            !phoneRegex.test(line)) {
+          pocCompany = line;
+          break;
+        }
+      }
       
-      // Extract city - look for patterns or take line with city-related keywords
-      const cityPattern = /\b(city|City|CITY|Province|州|市|区|district)\b/i;
-      const cityLine = lines.find(line => cityPattern.test(line)) || 
-                       lines.find(line => line.length > 2 && line.length < 30 && !emailRegex.test(line) && !phoneRegex.test(line)) ||
-                       (lines.length > 2 ? lines[2] : "");
-      const pocCity = cityLine.replace(/\b(city|City|CITY|Province|州|市|区|district)\b/gi, '').trim();
+      // === CITY/LOCATION EXTRACTION ===
+      // Look for location indicators
+      const cityPattern = /\b(city|province|state|district|区|市|州|county)\b/i;
+      let pocCity = "";
+      for (const line of lines) {
+        if ((cityPattern.test(line) || 
+             (line.length > 2 && line.length < 40 && /[A-Z][a-z]+/.test(line))) &&
+            line !== pocName &&
+            line !== pocCompany &&
+            !emailRegex.test(line) &&
+            !phoneRegex.test(line) &&
+            !urlRegex.test(line)) {
+          // Clean up location keywords
+          pocCity = line.replace(/\b(city|province|state|district|区|市|州|county)\b/gi, '').trim();
+          if (pocCity.length > 2) {
+            break;
+          }
+        }
+      }
       
-      // Update form data
+      // Only update fields that were successfully detected (non-empty)
+      const updates: any = {};
+      if (pocName) updates.pocName = pocName;
+      if (pocCompany) updates.pocCompany = pocCompany;
+      if (pocCity) updates.pocCity = pocCity;
+      if (pocPhone) updates.pocPhone = pocPhone;
+      if (pocEmail) updates.pocEmail = pocEmail;
+      if (pocLink) updates.pocLink = pocLink;
+      
       setFormData(prev => ({
         ...prev,
-        pocName: pocName || prev.pocName,
-        pocCompany: pocCompany || prev.pocCompany,
-        pocCity: pocCity || prev.pocCity,
-        pocPhone: pocPhone || prev.pocPhone,
-        pocEmail: pocEmail || prev.pocEmail,
-        pocLink: pocLink || prev.pocLink,
+        ...updates,
       }));
       
-      toast.success("✅ Details extracted! Please review and edit as needed.");
+      const detectedCount = Object.keys(updates).length;
+      if (detectedCount > 0) {
+        toast.success(`✅ Extracted ${detectedCount} field${detectedCount > 1 ? 's' : ''}! Please review and edit as needed.`);
+      } else {
+        toast.warning("⚠️ Could not detect details clearly. Please fill manually.");
+      }
     } catch (error) {
       console.error("OCR processing error:", error);
       toast.error("⚠️ Could not extract details. Please fill manually.");
