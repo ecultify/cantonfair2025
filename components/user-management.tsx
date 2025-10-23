@@ -52,7 +52,15 @@ export default function UserManagement() {
       }
       
       const data = await response.json();
-      setUsers(data.users);
+      
+      // Convert date strings to Date objects
+      const usersWithDates = data.users.map((u: any) => ({
+        ...u,
+        createdAt: new Date(u.createdAt),
+        lastSignInAt: u.lastSignInAt ? new Date(u.lastSignInAt) : undefined,
+      }));
+      
+      setUsers(usersWithDates);
     } catch (error) {
       console.error("Error loading users:", error);
       toast.error("Failed to load users");
