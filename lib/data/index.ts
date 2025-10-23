@@ -72,4 +72,7 @@ export const dataService = {
   get quickCaptures() {
     return currentAdapter.quickCaptures;
   },
+  get admin() {
+    return currentAdapter.admin;
+  },
 };

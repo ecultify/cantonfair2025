@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth/context";
 import { dataService } from "@/lib/data";
 import { performOCR } from "@/lib/utils/ocr";
 import { MediaCapture } from "@/components/media-capture";
+import UserManagement from "@/components/user-management";
 import {
   Package,
   Search,
@@ -18,6 +19,7 @@ import {
   Upload,
   LogOut,
   Trash2,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +69,8 @@ interface QuickCapture {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocPhone?: string;
+  pocEmail?: string;
   pocLink?: string;
   userId: string;
   createdAt: Date;
@@ -81,6 +85,10 @@ export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
 
   // Quick Add Form State
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -114,6 +122,8 @@ export default function Dashboard() {
     pocName: "",
     pocCompany: "",
     pocCity: "",
+    pocPhone: "",
+    pocEmail: "",
     pocLink: "",
   });
 
@@ -122,10 +132,21 @@ export default function Dashboard() {
   useEffect(() => {
     if (isAuthenticated && user) {
       loadQuickCaptures();
+      checkAdminStatus();
     } else {
       setLoading(false);
     }
   }, [isAuthenticated, user]);
+
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    try {
+      const adminStatus = await dataService.admin.isAdmin(user.id);
+      setIsAdmin(adminStatus);
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    }
+  };
 
   const loadQuickCaptures = async () => {
     if (!user) return;
@@ -168,6 +189,8 @@ export default function Dashboard() {
       pocName: "",
       pocCompany: "",
       pocCity: "",
+      pocPhone: "",
+      pocEmail: "",
       pocLink: "",
     });
   };
@@ -187,20 +210,71 @@ export default function Dashboard() {
         visitingCardUrl: dataUrl,
       }));
       
-      // Process OCR on visiting card
-      try {
-        setProcessing(true);
-        const ocrText = await performOCR(dataUrl);
-        // You can auto-fill POC fields from OCR here if needed
-        toast.success("Visiting card captured!");
-      } catch (error) {
-        console.error("OCR error:", error);
-        toast.error("OCR processing failed");
-      } finally {
-        setProcessing(false);
-      }
+      // Note: OCR will be processed when user clicks on the card image
+      toast.success("Visiting card captured! Click on the card to extract details.");
     }
     setCurrentCaptureTarget(null);
+  };
+
+  const handleProcessVisitingCard = async () => {
+    if (!formData.visitingCardUrl) {
+      toast.error("No visiting card to process");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      toast.info("Processing visiting card...");
+      
+      const ocrText = await performOCR(formData.visitingCardUrl);
+      
+      // Extract information from OCR text
+      const lines = ocrText.split('\n').filter(line => line.trim());
+      
+      // Extract email
+      const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      const emails = ocrText.match(emailRegex);
+      const pocEmail = emails ? emails[0] : "";
+      
+      // Extract phone numbers (international and local formats)
+      const phoneRegex = /[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}/g;
+      const phones = ocrText.match(phoneRegex)?.filter(p => p.replace(/\D/g, '').length >= 7);
+      const pocPhone = phones ? phones[0] : "";
+      
+      // Extract URLs/links
+      const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.(com|net|org|io|co|cn)[^\s]*)/gi;
+      const urls = ocrText.match(urlRegex);
+      const pocLink = urls ? (urls[0].startsWith('http') ? urls[0] : 'https://' + urls[0]) : "";
+      
+      // Try to extract name (usually first line or lines before email/phone)
+      const pocName = lines[0] || "";
+      
+      // Try to extract company (usually second line or after name)
+      const pocCompany = lines.length > 1 ? lines[1] : "";
+      
+      // Try to extract city (look for common city patterns or just use third line)
+      const cityPattern = /\b(city|City|CITY|Province|州|市)\b/;
+      const cityLine = lines.find(line => cityPattern.test(line)) || (lines.length > 2 ? lines[2] : "");
+      const pocCity = cityLine.replace(/\b(city|City|CITY|Province|州|市)\b/g, '').trim();
+      
+      // Update form data
+      setFormData(prev => ({
+        ...prev,
+        pocName: pocName || prev.pocName,
+        pocCompany: pocCompany || prev.pocCompany,
+        pocCity: pocCity || prev.pocCity,
+        pocPhone: pocPhone || prev.pocPhone,
+        pocEmail: pocEmail || prev.pocEmail,
+        pocLink: pocLink || prev.pocLink,
+      }));
+      
+      toast.success("Card details extracted! Please review and edit as needed.");
+    } catch (error) {
+      console.error("OCR processing error:", error);
+      toast.error("Failed to process visiting card");
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleSubmitQuickCapture = async (e: React.FormEvent) => {
@@ -224,6 +298,8 @@ export default function Dashboard() {
         pocName: formData.pocName || undefined,
         pocCompany: formData.pocCompany || undefined,
         pocCity: formData.pocCity || undefined,
+        pocPhone: formData.pocPhone || undefined,
+        pocEmail: formData.pocEmail || undefined,
         pocLink: formData.pocLink || undefined,
         userId: user.id,
       });
@@ -354,14 +430,26 @@ export default function Dashboard() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
+              <User className="h-5 w-5" />
+            </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   {user?.email || 'My Account'}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isAdmin && (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={() => setShowUserManagement(true)} 
+                      className="cursor-pointer"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      User Management
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
@@ -433,36 +521,36 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg text-slate-900 truncate">
                         {capture.productName || 'Untitled Capture'}
-                      </h3>
+                        </h3>
                       {capture.remarks && (
                         <p className="text-sm text-slate-600 line-clamp-2 mt-1">
                           {capture.remarks}
                         </p>
-                      )}
-                      <div className="flex flex-wrap gap-2 mt-2">
+                        )}
+                        <div className="flex flex-wrap gap-2 mt-2">
                         {capture.pocCompany && (
-                          <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs">
                             {capture.pocCompany}
                           </Badge>
                         )}
                         {capture.pocName && (
                           <Badge variant="default" className="text-xs">
                             {capture.pocName}
-                          </Badge>
-                        )}
+                            </Badge>
+                          )}
                         {capture.pocCity && (
                           <Badge variant="secondary" className="text-xs">
                             {capture.pocCity}
-                          </Badge>
+                            </Badge>
                         )}
-                      </div>
-                      <p className="text-xs text-slate-400 mt-2">
+                        </div>
+                        <p className="text-xs text-slate-400 mt-2">
                         {new Date(capture.createdAt).toLocaleString()}
-                      </p>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
             ))}
           </div>
         )}
@@ -585,16 +673,34 @@ export default function Dashboard() {
                   <img
                     src={formData.visitingCardUrl}
                     alt="Visiting Card"
-                    className="w-full h-40 object-contain bg-slate-100 rounded-lg"
+                    className="w-full h-40 object-contain bg-slate-100 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={handleProcessVisitingCard}
+                    title="Click to extract details from card"
                   />
                   <Button
                     type="button"
                     size="sm"
                     variant="destructive"
-                    className="absolute top-2 right-2"
-                    onClick={() => setFormData(prev => ({ ...prev, visitingCardUrl: "" }))}
+                    className="absolute top-2 right-2 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFormData(prev => ({ ...prev, visitingCardUrl: "" }));
+                    }}
                   >
                     Remove
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    className="absolute bottom-2 right-2 z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleProcessVisitingCard();
+                    }}
+                    disabled={processing}
+                  >
+                    {processing ? "Processing..." : "Extract Details"}
                   </Button>
                 </div>
               ) : (
@@ -656,6 +762,30 @@ export default function Dashboard() {
               </div>
 
               <div>
+                <Label htmlFor="pocPhone" className="text-sm">Phone Number</Label>
+                <Input
+                  id="pocPhone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={formData.pocPhone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pocPhone: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="pocEmail" className="text-sm">Email</Label>
+                <Input
+                  id="pocEmail"
+                  type="email"
+                  placeholder="Enter email address"
+                  value={formData.pocEmail}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pocEmail: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="pocLink" className="text-sm">Website/Link</Label>
                 <Input
                   id="pocLink"
@@ -673,16 +803,16 @@ export default function Dashboard() {
           
           {/* Fixed Submit Button */}
           <div className="px-4 py-3 border-t flex-shrink-0 bg-white">
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
+              <Button
+                type="submit"
+                size="lg"
+                className="w-full"
               disabled={processing}
               onClick={handleSubmitQuickCapture}
-            >
-              {processing ? "Saving..." : "Save Quick Capture"}
-            </Button>
-          </div>
+              >
+                {processing ? "Saving..." : "Save Quick Capture"}
+              </Button>
+            </div>
         </DialogContent>
       </Dialog>
 
@@ -768,7 +898,7 @@ export default function Dashboard() {
               )}
 
               {/* POC Details Section */}
-              {(selectedCapture.pocName || selectedCapture.pocCompany || selectedCapture.pocCity || selectedCapture.pocLink) && (
+              {(selectedCapture.pocName || selectedCapture.pocCompany || selectedCapture.pocCity || selectedCapture.pocPhone || selectedCapture.pocEmail || selectedCapture.pocLink) && (
                 <div className="space-y-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Users className="h-5 w-5 text-purple-600" />
@@ -791,6 +921,28 @@ export default function Dashboard() {
                       <div>
                         <Label className="text-sm text-slate-600">City</Label>
                         <p className="font-medium">{selectedCapture.pocCity}</p>
+                      </div>
+                    )}
+                    {selectedCapture.pocPhone && (
+                      <div>
+                        <Label className="text-sm text-slate-600">Phone Number</Label>
+                        <a 
+                          href={`tel:${selectedCapture.pocPhone}`} 
+                          className="font-medium text-blue-600 hover:underline"
+                        >
+                          {selectedCapture.pocPhone}
+                        </a>
+                      </div>
+                    )}
+                    {selectedCapture.pocEmail && (
+                      <div>
+                        <Label className="text-sm text-slate-600">Email</Label>
+                        <a 
+                          href={`mailto:${selectedCapture.pocEmail}`} 
+                          className="font-medium text-blue-600 hover:underline break-all"
+                        >
+                          {selectedCapture.pocEmail}
+                        </a>
                       </div>
                     )}
                     {selectedCapture.pocLink && (
@@ -836,6 +988,19 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* User Management Dialog */}
+      <Dialog open={showUserManagement} onOpenChange={setShowUserManagement}>
+        <DialogContent className="max-w-6xl w-[calc(100vw-2rem)] sm:w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
+            <DialogTitle>User Management</DialogTitle>
+            <DialogDescription>Manage all registered users</DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(90vh - 100px)' }}>
+            <UserManagement />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

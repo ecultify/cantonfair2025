@@ -980,7 +980,7 @@ export const supabaseAdapter: DataAdapter = {
       const { data, error } = await supabase
         .from("quick_captures")
         .select("*")
-        .eq("user_id", userId)
+        // Removed .eq("user_id", userId) to show all captures to all users
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -996,6 +996,8 @@ export const supabaseAdapter: DataAdapter = {
         pocName: row.poc_name,
         pocCompany: row.poc_company,
         pocCity: row.poc_city,
+        pocPhone: row.poc_phone,
+        pocEmail: row.poc_email,
         pocLink: row.poc_link,
         userId: row.user_id,
         vendorId: row.vendor_id,
@@ -1027,6 +1029,8 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocPhone: (data as any).poc_phone,
+        pocEmail: (data as any).poc_email,
         pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
@@ -1050,6 +1054,8 @@ export const supabaseAdapter: DataAdapter = {
           poc_name: capture.pocName,
           poc_company: capture.pocCompany,
           poc_city: capture.pocCity,
+          poc_phone: capture.pocPhone,
+          poc_email: capture.pocEmail,
           poc_link: capture.pocLink,
           user_id: capture.userId,
           vendor_id: capture.vendorId,
@@ -1070,6 +1076,8 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocPhone: (data as any).poc_phone,
+        pocEmail: (data as any).poc_email,
         pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
@@ -1090,6 +1098,8 @@ export const supabaseAdapter: DataAdapter = {
       if (capture.pocName !== undefined) updateData.poc_name = capture.pocName;
       if (capture.pocCompany !== undefined) updateData.poc_company = capture.pocCompany;
       if (capture.pocCity !== undefined) updateData.poc_city = capture.pocCity;
+      if (capture.pocPhone !== undefined) updateData.poc_phone = capture.pocPhone;
+      if (capture.pocEmail !== undefined) updateData.poc_email = capture.pocEmail;
       if (capture.pocLink !== undefined) updateData.poc_link = capture.pocLink;
       if (capture.vendorId !== undefined) updateData.vendor_id = capture.vendorId;
       updateData.updated_at = new Date().toISOString();
@@ -1114,6 +1124,8 @@ export const supabaseAdapter: DataAdapter = {
         pocName: (data as any).poc_name,
         pocCompany: (data as any).poc_company,
         pocCity: (data as any).poc_city,
+        pocPhone: (data as any).poc_phone,
+        pocEmail: (data as any).poc_email,
         pocLink: (data as any).poc_link,
         userId: (data as any).user_id,
         vendorId: (data as any).vendor_id,
@@ -1125,6 +1137,44 @@ export const supabaseAdapter: DataAdapter = {
     async delete(id: string) {
       // @ts-ignore
       const { error } = await supabase.from("quick_captures").delete().eq("id", id);
+      if (error) throw error;
+    },
+  },
+
+  // Admin functionality
+  admin: {
+    async isAdmin(userId: string): Promise<boolean> {
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from("admin_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (error) throw error;
+      return !!data;
+    },
+
+    async getAllUsers(): Promise<any[]> {
+      // @ts-ignore
+      const { data, error } = await supabase.auth.admin.listUsers();
+      if (error) throw error;
+      
+      return (data?.users || []).map((user: any) => ({
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        emailConfirmed: user.email_confirmed_at ? true : false,
+        phoneConfirmed: user.phone_confirmed_at ? true : false,
+        createdAt: new Date(user.created_at),
+        lastSignInAt: user.last_sign_in_at ? new Date(user.last_sign_in_at) : undefined,
+      }));
+    },
+
+    async deleteUser(userId: string): Promise<void> {
+      // @ts-ignore
+      const { error } = await supabase.auth.admin.deleteUser(userId);
       if (error) throw error;
     },
   },

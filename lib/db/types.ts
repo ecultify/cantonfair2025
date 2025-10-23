@@ -48,6 +48,8 @@ export interface QuickCapture {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocPhone?: string;
+  pocEmail?: string;
   pocLink?: string;
   
   // Metadata
@@ -68,7 +70,28 @@ export interface CreateQuickCaptureInput {
   pocName?: string;
   pocCompany?: string;
   pocCity?: string;
+  pocPhone?: string;
+  pocEmail?: string;
   pocLink?: string;
   userId: string;
   vendorId?: string;
+}
+
+export interface AdminRole {
+  id: string;
+  userId: string;
+  email: string;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  phone?: string;
+  emailConfirmed: boolean;
+  phoneConfirmed: boolean;
+  createdAt: Date;
+  lastSignInAt?: Date;
 }

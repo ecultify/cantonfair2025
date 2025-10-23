@@ -1,5 +1,5 @@
 import type { Vendor, Product, POC, Media, Note, FollowUp, Tag, Link, Meeting } from "../db/dexie";
-import type { QuickCapture, CreateQuickCaptureInput } from "../db/types";
+import type { QuickCapture, CreateQuickCaptureInput, User } from "../db/types";
 
 export interface DataAdapter {
   vendors: {
@@ -68,6 +68,11 @@ export interface DataAdapter {
     create: (capture: CreateQuickCaptureInput) => Promise<QuickCapture>;
     update: (id: string, capture: Partial<QuickCapture>) => Promise<QuickCapture>;
     delete: (id: string) => Promise<void>;
+  };
+  admin: {
+    isAdmin: (userId: string) => Promise<boolean>;
+    getAllUsers: () => Promise<User[]>;
+    deleteUser: (userId: string) => Promise<void>;
   };
 }
 

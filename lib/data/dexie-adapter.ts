@@ -429,4 +429,21 @@ export const dexieAdapter: DataAdapter = {
       await getDb().quickCaptures.delete(id);
     },
   },
+
+  // Admin functionality (not supported in Dexie - local storage only)
+  admin: {
+    async isAdmin(userId: string): Promise<boolean> {
+      // For Dexie, we'll just return false since admin functionality requires server-side auth
+      return false;
+    },
+
+    async getAllUsers(): Promise<any[]> {
+      // For Dexie, return empty array since we can't access auth users
+      return [];
+    },
+
+    async deleteUser(userId: string): Promise<void> {
+      throw new Error("User deletion not supported in local storage mode");
+    },
+  },
 };
