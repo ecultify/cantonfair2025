@@ -479,12 +479,12 @@ export default function Dashboard() {
             <Plus className="h-8 w-8" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl w-[95vw] h-[95vh] max-h-[95vh] p-0 flex flex-col gap-0">
-          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0 m-4">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
             <DialogTitle>Quick Capture</DialogTitle>
             <DialogDescription>Fill in the details below</DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4" style={{ maxHeight: 'calc(90vh - 140px)' }}>
 
           <form onSubmit={handleSubmitQuickCapture} className="space-y-6">
             {/* Section 1: Product Photo/Video */}
@@ -531,6 +531,7 @@ export default function Dashboard() {
                   className="w-full h-24 border-dashed border-2"
                   onClick={() => {
                     setCurrentCaptureTarget('product');
+                    setMediaCaptureMode('both');
                     setShowMediaCapture(true);
                   }}
                 >
@@ -577,7 +578,7 @@ export default function Dashboard() {
             <div className="space-y-3">
               <Label className="text-base font-semibold flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-orange-600" />
-                3. Visiting Card (Optional)
+                3. Visiting Card
               </Label>
               
               {formData.visitingCardUrl ? (
@@ -668,18 +669,20 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-4 pb-2">
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={processing}
-              >
-                {processing ? "Saving..." : "Save Quick Capture"}
-              </Button>
-            </div>
           </form>
+          </div>
+          
+          {/* Fixed Submit Button */}
+          <div className="px-4 py-3 border-t flex-shrink-0 bg-white">
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={processing}
+              onClick={handleSubmitQuickCapture}
+            >
+              {processing ? "Saving..." : "Save Quick Capture"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -694,14 +697,14 @@ export default function Dashboard() {
 
       {/* Detail View Dialog */}
       <Dialog open={showDetailView} onOpenChange={setShowDetailView}>
-        <DialogContent className="max-w-2xl w-[95vw] h-[95vh] max-h-[95vh] p-0 flex flex-col gap-0">
-          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0 m-4">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
             <DialogTitle>Capture Details</DialogTitle>
             <DialogDescription>
               {selectedCapture && new Date(selectedCapture.createdAt).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4" style={{ maxHeight: 'calc(90vh - 100px)' }}>
 
           {selectedCapture && (
             <div className="space-y-6">

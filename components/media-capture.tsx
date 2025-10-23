@@ -34,6 +34,15 @@ export function MediaCapture({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  // Set initial capture mode based on mode prop
+  useEffect(() => {
+    if (mode === 'photo') {
+      setCaptureMode('photo');
+    } else if (mode === 'video') {
+      setCaptureMode('video');
+    }
+  }, [mode, open]);
+
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
