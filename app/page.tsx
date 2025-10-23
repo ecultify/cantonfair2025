@@ -484,11 +484,12 @@ export default function Dashboard() {
             <Plus className="h-8 w-8" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="pb-4">
+        <DialogContent className="max-w-2xl w-[95vw] h-[95vh] max-h-[95vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0">
             <DialogTitle>Quick Capture</DialogTitle>
             <DialogDescription>Fill in the details below</DialogDescription>
           </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
 
           <form onSubmit={handleSubmitQuickCapture} className="space-y-6">
             {/* Section 1: Product Photo/Video */}
@@ -609,6 +610,7 @@ export default function Dashboard() {
                   className="w-full h-20 border-dashed border-2"
                   onClick={() => {
                     setCurrentCaptureTarget('card');
+                    setMediaCaptureMode('photo');
                     setShowMediaCapture(true);
                   }}
                   disabled={processing}
@@ -673,7 +675,7 @@ export default function Dashboard() {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4">
+            <div className="pt-4 pb-2">
               <Button
                 type="submit"
                 size="lg"
@@ -684,6 +686,7 @@ export default function Dashboard() {
               </Button>
             </div>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -692,18 +695,19 @@ export default function Dashboard() {
         open={showMediaCapture}
         onOpenChange={setShowMediaCapture}
         onCapture={handleMediaCapture}
-        mode="both"
+        mode={currentCaptureTarget === 'card' ? 'photo' : 'both'}
       />
 
       {/* Detail View Dialog */}
       <Dialog open={showDetailView} onOpenChange={setShowDetailView}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl w-[95vw] h-[95vh] max-h-[95vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0">
             <DialogTitle>Capture Details</DialogTitle>
             <DialogDescription>
               {selectedCapture && new Date(selectedCapture.createdAt).toLocaleString()}
             </DialogDescription>
           </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-4 py-4">
 
           {selectedCapture && (
             <div className="space-y-6">
@@ -809,6 +813,7 @@ export default function Dashboard() {
               )}
             </div>
           )}
+          </div>
         </DialogContent>
       </Dialog>
 
