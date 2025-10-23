@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { dataService } from "@/lib/data";
-import { performOCR } from "@/lib/utils/ocr";
+import { extractTextFromImage } from "@/lib/utils/ocr-space";
 import { MediaCapture } from "@/components/media-capture";
 import {
   Package,
@@ -242,7 +242,7 @@ export default function Dashboard() {
     try {
       setProcessing(true);
       
-      const ocrText = await performOCR(imageUrl);
+      const ocrText = await extractTextFromImage(imageUrl);
       
       // Extract information from OCR text
       const lines = ocrText.split('\n').filter(line => line.trim()).map(l => l.trim());

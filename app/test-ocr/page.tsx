@@ -45,7 +45,7 @@ export default function TestOCRPage() {
 
       const formData = new FormData();
       formData.append("file", imageFile);
-      formData.append("apikey", "K87711251188957");
+      formData.append("apikey", process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY || "K87711251188957");
       formData.append("language", "eng");
       formData.append("isOverlayRequired", "false");
       formData.append("detectOrientation", "true");
@@ -292,7 +292,7 @@ export default function TestOCRPage() {
               <li>Compare accuracy with the actual business card</li>
             </ol>
             <p className="mt-3 text-xs text-blue-700">
-              API Key: K87711251188957 (Free Tier: 25,000 requests/month)
+              API: OCR.space Engine 2 (Free Tier: 25,000 requests/month)
             </p>
           </CardContent>
         </Card>
