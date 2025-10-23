@@ -19,6 +19,9 @@ import {
   LogOut,
   Trash2,
   Shield,
+  X,
+  Camera,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -377,13 +380,13 @@ export default function Dashboard() {
       
       const detectedCount = Object.keys(updates).length;
       if (detectedCount > 0) {
-        toast.success(`✅ Extracted ${detectedCount} field${detectedCount > 1 ? 's' : ''}! Please review and edit as needed.`);
+        toast.success(`Extracted ${detectedCount} field${detectedCount > 1 ? 's' : ''}! Please review and edit as needed.`);
       } else {
-        toast.warning("⚠️ Could not detect details clearly. Please fill manually.");
+        toast.warning("Could not detect details clearly. Please fill manually.");
       }
     } catch (error) {
       console.error("OCR processing error:", error);
-      toast.error("⚠️ Could not extract details. Please fill manually.");
+      toast.error("Could not extract details. Please fill manually.");
     } finally {
       setProcessing(false);
     }
@@ -772,8 +775,9 @@ export default function Dashboard() {
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                      <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-                        {item.type === 'photo' ? '📷' : '🎥'} {index + 1}
+                      <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded flex items-center gap-1">
+                        {item.type === 'photo' ? <Camera className="h-3 w-3" /> : <Video className="h-3 w-3" />}
+                        <span>{index + 1}</span>
                       </div>
                     </div>
                   ))}
@@ -1015,8 +1019,18 @@ export default function Dashboard() {
                             className="w-full h-auto max-h-64 object-contain rounded-lg border"
                           />
                         )}
-                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                          {item.type === 'photo' ? '📷 Photo' : '🎥 Video'} {index + 1}
+                        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                          {item.type === 'photo' ? (
+                            <>
+                              <Camera className="h-3 w-3" />
+                              <span>Photo {index + 1}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Video className="h-3 w-3" />
+                              <span>Video {index + 1}</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
