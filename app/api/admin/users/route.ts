@@ -62,15 +62,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const users = (data?.users || []).map((u: any) => ({
-      id: u.id,
-      email: u.email,
-      phone: u.phone,
-      emailConfirmed: u.email_confirmed_at ? true : false,
-      phoneConfirmed: u.phone_confirmed_at ? true : false,
-      createdAt: u.created_at,
-      lastSignInAt: u.last_sign_in_at,
-    }));
+    const users = (data?.users || [])
+      .filter((u: any) => u.email !== 'ecultify@gmail.com') // Exclude admin from list
+      .map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        phone: u.phone,
+        emailConfirmed: u.email_confirmed_at ? true : false,
+        phoneConfirmed: u.phone_confirmed_at ? true : false,
+        createdAt: u.created_at,
+        lastSignInAt: u.last_sign_in_at,
+      }));
 
     return NextResponse.json({ users });
   } catch (error: any) {

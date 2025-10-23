@@ -158,11 +158,6 @@ export default function UserManagement() {
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Mail className="h-4 w-4 text-gray-600" />
                     {userData.email}
-                    {userData.id === user?.id && (
-                      <Badge variant="default" className="bg-blue-600">
-                        You
-                      </Badge>
-                    )}
                   </CardTitle>
                   {userData.phone && (
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
@@ -199,9 +194,8 @@ export default function UserManagement() {
                 )}
               </div>
               
-              {userData.id !== user?.id && (
-                <div className="mt-4 pt-4 border-t">
-                  <AlertDialog>
+              <div className="mt-4 pt-4 border-t">
+                <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="destructive" 
@@ -241,7 +235,6 @@ export default function UserManagement() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              )}
             </CardContent>
           </Card>
         ))}
