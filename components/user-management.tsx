@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Trash2, Users, Mail, Phone, Calendar, Shield } from "lucide-react";
-import { dataService } from "@/lib/data";
 import { useAuth } from "@/lib/auth/context";
 import { toast } from "sonner";
 
@@ -33,8 +32,12 @@ export default function UserManagement() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const allUsers = await dataService.admin.getAllUsers();
-      setUsers(allUsers);
+      const response = await fetch('/api/admin/users');
+      if (!response.ok) {
+        throw new Error('Failed to load users');
+      }
+      const data = await response.json();
+      setUsers(data.users);
     } catch (error) {
       console.error("Error loading users:", error);
       toast.error("Failed to load users");
@@ -46,7 +49,18 @@ export default function UserManagement() {
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     try {
       setDeletingUserId(userId);
-      await dataService.admin.deleteUser(userId);
+      const response = await fetch('/api/admin/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+      
       setUsers(prev => prev.filter(u => u.id !== userId));
       toast.success(`User ${userEmail} deleted successfully`);
     } catch (error) {

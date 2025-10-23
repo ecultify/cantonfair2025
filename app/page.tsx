@@ -141,12 +141,8 @@ export default function Dashboard() {
 
   const checkAdminStatus = async () => {
     if (!user) return;
-    try {
-      const adminStatus = await dataService.admin.isAdmin(user.id);
-      setIsAdmin(adminStatus);
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-    }
+    // Hardcode ecultify@gmail.com as the only admin
+    setIsAdmin(user.email === 'ecultify@gmail.com');
   };
 
   const loadQuickCaptures = async () => {
