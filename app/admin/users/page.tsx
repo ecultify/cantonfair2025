@@ -60,7 +60,7 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center gap-4">
+        <div className="container mx-auto px-3 sm:px-4 py-3 flex items-center gap-3 sm:gap-4">
           <Button
             variant="ghost"
             size="icon"
@@ -69,14 +69,14 @@ export default function AdminUsersPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">User Management</h1>
-            <p className="text-xs text-slate-500">Manage all registered users</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900">User Management</h1>
+            <p className="text-xs text-slate-500 hidden sm:block">Manage all registered users</p>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-0 sm:px-4 py-0 sm:py-6">
         <UserManagement />
       </main>
     </div>

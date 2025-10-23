@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Users, Mail, Phone, Calendar, Shield } from "lucide-react";
+import { Trash2, Users, Mail, Phone, Calendar } from "lucide-react";
 import { useAuth } from "@/lib/auth/context";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -115,11 +115,7 @@ export default function UserManagement() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Shield className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold">User Management</h1>
-        </div>
+      <div className="p-4 sm:p-6">
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading users...</p>
@@ -129,59 +125,52 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Shield className="h-6 w-6 text-blue-600" />
-        <h1 className="text-2xl font-bold">User Management</h1>
-      </div>
-
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-gray-600" />
-            <span className="text-lg font-semibold">Total Users: {users.length}</span>
+            <span className="text-base sm:text-lg font-semibold">Total Users: {users.length}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              {users.filter(u => u.emailConfirmed).length} Email Verified
-            </Badge>
-          </div>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 w-fit">
+            {users.filter(u => u.emailConfirmed).length} Email Verified
+          </Badge>
         </div>
       </div>
 
       <div className="grid gap-4">
         {users.map((userData) => (
           <Card key={userData.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
+            <CardHeader className="pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div className="flex-1">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-600" />
-                    {userData.email}
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2 break-all">
+                    <Mail className="h-4 w-4 text-gray-600 flex-shrink-0" />
+                    <span className="break-all">{userData.email}</span>
                   </CardTitle>
                   {userData.phone && (
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-4 w-4 flex-shrink-0" />
                       {userData.phone}
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {userData.emailConfirmed && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
                       Email Verified
                     </Badge>
                   )}
                   {userData.phoneConfirmed && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
                       Phone Verified
                     </Badge>
                   )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+            <CardContent className="pt-0 px-4 sm:px-6 pb-4 sm:pb-6">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   <span>Joined: {formatDate(userData.createdAt)}</span>
@@ -194,12 +183,13 @@ export default function UserManagement() {
                 )}
               </div>
               
-              <div className="mt-4 pt-4 border-t">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
                         variant="destructive" 
                         size="sm"
+                        className="w-full sm:w-auto"
                         disabled={deletingUserId === userData.id}
                       >
                         {deletingUserId === userData.id ? (
