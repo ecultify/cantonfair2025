@@ -479,7 +479,7 @@ export default function Dashboard() {
             <Plus className="h-8 w-8" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0 m-4">
+        <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] sm:w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0">
           <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
             <DialogTitle>Quick Capture</DialogTitle>
             <DialogDescription>Fill in the details below</DialogDescription>
@@ -696,7 +696,7 @@ export default function Dashboard() {
 
       {/* Detail View Dialog */}
       <Dialog open={showDetailView} onOpenChange={setShowDetailView}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0 m-4">
+        <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] sm:w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0">
           <DialogHeader className="px-4 pt-4 pb-3 border-b flex-shrink-0 bg-white">
             <DialogTitle>Capture Details</DialogTitle>
             <DialogDescription>
