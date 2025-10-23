@@ -531,7 +531,6 @@ export default function Dashboard() {
                   className="w-full h-24 border-dashed border-2"
                   onClick={() => {
                     setCurrentCaptureTarget('product');
-                    setMediaCaptureMode('both');
                     setShowMediaCapture(true);
                   }}
                 >
