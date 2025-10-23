@@ -68,14 +68,21 @@ export function MediaCapture({
 
   // Start camera when modal opens
   useEffect(() => {
-    if (open && !preview) {
-      startCamera();
+    if (open && !preview && !stream) {
+      const timer = setTimeout(() => {
+        startCamera();
+      }, 100); // Small delay to ensure modal is fully rendered
+      
+      return () => clearTimeout(timer);
     }
-    return () => {
-      // Cleanup when modal closes
+  }, [open, preview, stream, startCamera]);
+
+  // Cleanup when modal closes
+  useEffect(() => {
+    if (!open) {
       stopCamera();
-    };
-  }, [open, preview, startCamera, stopCamera]);
+    }
+  }, [open, stopCamera]);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current) return;
@@ -158,10 +165,18 @@ export function MediaCapture({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="h-[95vh] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b flex-shrink-0">
+        <SheetHeader className="p-4 border-b flex-shrink-0 relative">
           <SheetTitle>
             {preview ? "Preview" : captureMode === 'photo' ? "Take Photo" : "Record Video"}
           </SheetTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="absolute top-2 right-2 h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </SheetHeader>
 
         <div className="relative flex-1 bg-black overflow-hidden">
