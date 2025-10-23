@@ -28,6 +28,7 @@ export function MediaCapture({
   const [isRecording, setIsRecording] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -35,6 +36,7 @@ export function MediaCapture({
 
   const startCamera = useCallback(async () => {
     try {
+      setIsCameraReady(false);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: 1920, height: 1080 },
         audio: captureMode === 'video',
@@ -43,6 +45,9 @@ export function MediaCapture({
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        videoRef.current.onloadedmetadata = () => {
+          setIsCameraReady(true);
+        };
       }
     } catch (error) {
       console.error("Camera error:", error);
@@ -136,6 +141,7 @@ export function MediaCapture({
     stopCamera();
     setPreview(null);
     setIsRecording(false);
+    setIsCameraReady(false);
     onOpenChange(false);
   }, [stopCamera, onOpenChange]);
 

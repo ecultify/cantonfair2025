@@ -44,9 +44,25 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { Vendor } from "@/lib/db/types";
 
+interface QuickCapture {
+  id: string;
+  mediaType?: 'photo' | 'video';
+  mediaUrl?: string;
+  mediaThumbUrl?: string;
+  productName: string;
+  remarks?: string;
+  visitingCardUrl?: string;
+  pocName?: string;
+  pocCompany?: string;
+  pocCity?: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function Dashboard() {
   const { user, loading: authLoading, isAuthenticated, signOut, signIn, signUp } = useAuth();
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [quickCaptures, setQuickCaptures] = useState<QuickCapture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [email, setEmail] = useState("");
@@ -83,21 +99,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadVendors();
+      loadQuickCaptures();
     } else {
       setLoading(false);
     }
   }, [isAuthenticated, user]);
 
-  const loadVendors = async () => {
+  const loadQuickCaptures = async () => {
     if (!user) return;
     try {
       setLoading(true);
-      const data = await dataService.vendors.findAll(user.id);
-      setVendors(data);
+      const data = await dataService.quickCaptures.findAll(user.id);
+      setQuickCaptures(data as QuickCapture[]);
     } catch (error) {
       console.error("Load error:", error);
-      toast.error("Failed to load vendors");
+      toast.error("Failed to load quick captures");
     } finally {
       setLoading(false);
     }
@@ -196,7 +212,7 @@ export default function Dashboard() {
       toast.success("Quick capture saved successfully!");
       setShowQuickAdd(false);
       resetForm();
-      await loadVendors(); // Refresh the list
+      await loadQuickCaptures(); // Refresh the list
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save quick capture");
@@ -205,8 +221,10 @@ export default function Dashboard() {
     }
   };
 
-  const filteredVendors = vendors.filter((vendor) =>
-    vendor.companyName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCaptures = quickCaptures.filter((capture) =>
+    capture.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    capture.pocCompany?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    capture.pocName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading || authLoading) {
@@ -309,7 +327,7 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-6 pb-24">
         <div className="mb-6">
           <Input
-            placeholder="Search vendors..."
+            placeholder="Search captures..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full"
@@ -320,11 +338,11 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-slate-600 mb-3">Today's Captures</h2>
         </div>
 
-        {filteredVendors.length === 0 ? (
+        {filteredCaptures.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <Package className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">No vendors captured yet</p>
+              <p className="text-slate-500">No captures yet</p>
               <p className="text-sm text-slate-400 mt-1">
                 Tap the + button to start capturing
               </p>
@@ -332,38 +350,59 @@ export default function Dashboard() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {filteredVendors.map((vendor) => (
-              <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg text-slate-900">
-                          {vendor.companyName}
-                        </h3>
-                        {vendor.brandName && (
-                          <p className="text-sm text-slate-600">{vendor.brandName}</p>
+            {filteredCaptures.map((capture) => (
+              <Card key={capture.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex gap-4 items-start">
+                    {capture.mediaUrl && (
+                      <div className="w-20 h-20 flex-shrink-0">
+                        {capture.mediaType === 'photo' ? (
+                          <img
+                            src={capture.mediaThumbUrl || capture.mediaUrl}
+                            alt={capture.productName}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <video
+                            src={capture.mediaUrl}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
                         )}
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {vendor.hall && vendor.stall && (
-                            <Badge variant="outline" className="text-xs">
-                              Hall {vendor.hall} - Stall {vendor.stall}
-                            </Badge>
-                          )}
-                          {vendor.tags?.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="default" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-2">
-                          {new Date(vendor.createdAt).toLocaleString()}
-                        </p>
                       </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg text-slate-900 truncate">
+                        {capture.productName}
+                      </h3>
+                      {capture.remarks && (
+                        <p className="text-sm text-slate-600 line-clamp-2 mt-1">
+                          {capture.remarks}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {capture.pocCompany && (
+                          <Badge variant="outline" className="text-xs">
+                            {capture.pocCompany}
+                          </Badge>
+                        )}
+                        {capture.pocName && (
+                          <Badge variant="default" className="text-xs">
+                            {capture.pocName}
+                          </Badge>
+                        )}
+                        {capture.pocCity && (
+                          <Badge variant="secondary" className="text-xs">
+                            {capture.pocCity}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        {new Date(capture.createdAt).toLocaleString()}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
