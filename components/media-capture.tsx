@@ -34,6 +34,17 @@ export function MediaCapture({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
+      setIsCameraReady(false);
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, [stream]);
+
   const startCamera = useCallback(async () => {
     try {
       setIsCameraReady(false);
@@ -65,17 +76,6 @@ export function MediaCapture({
       stopCamera();
     };
   }, [open, preview, startCamera, stopCamera]);
-
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-      setIsCameraReady(false);
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }, [stream]);
 
   const capturePhoto = useCallback(() => {
     if (!videoRef.current) return;
