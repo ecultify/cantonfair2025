@@ -78,13 +78,14 @@ interface QuickCapture {
 }
 
 export default function Dashboard() {
-  const { user, loading: authLoading, isAuthenticated, signOut, signIn, signUp } = useAuth();
+  const { user, loading: authLoading, isAuthenticated, signOut, signIn, signUp, resetPassword } = useAuth();
   const [quickCaptures, setQuickCaptures] = useState<QuickCapture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -168,13 +169,25 @@ export default function Dashboard() {
       if (authMode === "signin") {
         await signIn(email, password);
         toast.success("Signed in successfully!");
-      } else {
+      } else if (authMode === "signup") {
         await signUp(email, password);
         toast.success("Account created! Please check your email for verification.");
       }
     } catch (error: any) {
       console.error("Auth error:", error);
       toast.error(error.message || "Authentication failed");
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await resetPassword(email);
+      toast.success("Password reset email sent! Check your inbox.");
+      setAuthMode("signin");
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      toast.error(error.message || "Failed to send reset email");
     }
   };
 
@@ -370,33 +383,72 @@ export default function Dashboard() {
             <CardTitle className="text-3xl font-bold">Canton Fair Capture</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAuth} className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <Input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <Button type="submit" className="w-full" size="lg">
-                {authMode === "signin" ? "Sign In" : "Sign Up"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
-              >
-                {authMode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
-              </Button>
-            </form>
+            {authMode === "forgot" ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-semibold">Reset Password</h3>
+                  <p className="text-sm text-gray-600">Enter your email to receive a reset link</p>
+                </div>
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Button type="submit" className="w-full" size="lg">
+                  Send Reset Email
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setAuthMode("signin")}
+                >
+                  Back to Sign In
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={handleAuth} className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button type="submit" className="w-full" size="lg">
+                  {authMode === "signin" ? "Sign In" : "Sign Up"}
+                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
+                  >
+                    {authMode === "signin" ? "Need an account? Sign up" : "Have an account? Sign in"}
+                  </Button>
+                  {authMode === "signin" && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="w-full text-sm"
+                      onClick={() => setAuthMode("forgot")}
+                    >
+                      Forgot your password?
+                    </Button>
+                  )}
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
