@@ -115,6 +115,8 @@ export default function Dashboard() {
   const [showMediaCapture, setShowMediaCapture] = useState(false);
   const [mediaCaptureMode, setMediaCaptureMode] = useState<'photo' | 'video'>('photo');
   const [processing, setProcessing] = useState(false);
+  const [ocrProcessing, setOcrProcessing] = useState(false);
+  const [saving, setSaving] = useState(false);
   
   // Detail View State
   const [selectedCapture, setSelectedCapture] = useState<QuickCapture | null>(null);
@@ -123,6 +125,7 @@ export default function Dashboard() {
   // Delete State
   const [captureToDelete, setCaptureToDelete] = useState<QuickCapture | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -335,7 +338,7 @@ export default function Dashboard() {
     }
 
     try {
-      setProcessing(true);
+      setOcrProcessing(true);
       
       const ocrText = await extractTextFromImage(imageUrl);
       
@@ -470,7 +473,7 @@ export default function Dashboard() {
       console.error("OCR processing error:", error);
       toast.error("Could not extract details. Please fill manually.");
     } finally {
-      setProcessing(false);
+      setOcrProcessing(false);
     }
   };
 
@@ -483,7 +486,7 @@ export default function Dashboard() {
     }
 
     try {
-      setProcessing(true);
+      setSaving(true);
 
       await dataService.quickCaptures.create({
         mediaItems: formData.productMediaItems,
@@ -509,7 +512,7 @@ export default function Dashboard() {
       console.error("Save error:", error);
       toast.error("Failed to save quick capture");
     } finally {
-      setProcessing(false);
+      setSaving(false);
     }
   };
 
@@ -534,7 +537,7 @@ export default function Dashboard() {
     if (!captureToDelete) return;
     
     try {
-      setProcessing(true);
+      setDeleting(true);
       await dataService.quickCaptures.delete(captureToDelete.id);
       
       // Refresh the list immediately
@@ -547,7 +550,7 @@ export default function Dashboard() {
       console.error("Delete error:", error);
       toast.error("Failed to delete capture");
     } finally {
-      setProcessing(false);
+      setDeleting(false);
     }
   };
 
@@ -734,7 +737,7 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 z-10"
+                  className="absolute top-2 right-2 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 z-[5]"
                   onClick={(e) => handleDeleteClick(e, capture)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -815,9 +818,9 @@ export default function Dashboard() {
         <DialogTrigger asChild>
           <Button
             size="lg"
-            className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 z-50"
+            className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 z-40"
           >
-            <Plus className="h-8 w-8" />
+            <Plus className="h-8 w-8 text-white" />
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-2xl w-[calc(100vw-2rem)] sm:w-[95vw] max-h-[90vh] sm:max-h-[95vh] p-0 flex flex-col gap-0">
@@ -952,7 +955,7 @@ export default function Dashboard() {
                   >
                     Remove
                   </Button>
-                  {processing && (
+                  {ocrProcessing && (
                     <div className="absolute bottom-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-md text-sm flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                       Extracting details...
@@ -1063,10 +1066,10 @@ export default function Dashboard() {
                 type="submit"
                 size="lg"
                 className="w-full"
-              disabled={processing}
+              disabled={saving || processing}
               onClick={handleSubmitQuickCapture}
               >
-                {processing ? "Saving..." : "Save Quick Capture"}
+                {saving ? "Saving..." : "Save Quick Capture"}
               </Button>
             </div>
         </DialogContent>
