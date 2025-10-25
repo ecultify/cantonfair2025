@@ -157,6 +157,12 @@ export function MediaCapture({
     });
   };
 
+  const handleClose = useCallback(() => {
+    setPreview(null);
+    setIsRecording(false);
+    onOpenChange(false);
+  }, [onOpenChange]);
+
   const handleConfirm = useCallback(async () => {
     if (preview) {
       let dataToSend = preview;
@@ -191,12 +197,6 @@ export function MediaCapture({
       startCamera();
     }
   }, [captureMode, startCamera]);
-
-  const handleClose = useCallback(() => {
-    setPreview(null);
-    setIsRecording(false);
-    onOpenChange(false);
-  }, [onOpenChange]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
