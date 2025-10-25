@@ -624,8 +624,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 pb-24">
-        <div className="mb-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-24">
+        <div className="mb-4 sm:mb-6">
           <Input
             placeholder="Search captures..."
             value={searchQuery}
@@ -634,7 +634,7 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="mb-4">
+        <div className="mb-3 sm:mb-4">
           <h2 className="text-sm font-semibold text-slate-600 mb-3">Today's Captures</h2>
         </div>
 
