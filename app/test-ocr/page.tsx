@@ -33,44 +33,108 @@ export default function TestOCRPage() {
     }
   };
 
+  const compressImage = async (dataUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // OPTIMIZED: Balance between size and readability
+        // Keep decent resolution for text recognition
+        const maxDimension = 1280; // Increased from 1024 for better text clarity
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          // Increase quality for better text recognition (0.8 is a good balance)
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } else {
+          reject(new Error('Failed to get canvas context'));
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = dataUrl;
+    });
+  };
+
   const extractTextWithOCRSpace = async () => {
-    if (!imageFile) {
+    if (!imageFile || !imagePreview) {
       toast.error("Please select an image first");
       return;
     }
 
     try {
       setProcessing(true);
-      toast.info("Extracting text from image...");
+      toast.info("Compressing image...");
 
+      // Compress image to reduce size and processing time
+      const compressedImage = await compressImage(imagePreview);
+      const sizeKB = Math.round(compressedImage.length / 1024);
+      
+      toast.info(`Extracting text (${sizeKB} KB)...`);
+
+      // Use base64Image parameter to avoid file type detection issues
       const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("apikey", process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY || "K87711251188957");
+      formData.append("base64Image", compressedImage);
+      // HARDCODED API KEY FOR TESTING
+      formData.append("apikey", "K83480352388957");
       formData.append("language", "eng");
       formData.append("isOverlayRequired", "false");
       formData.append("detectOrientation", "true");
       formData.append("scale", "true");
-      formData.append("OCREngine", "2"); // Engine 2 is more accurate
+      formData.append("OCREngine", "1"); // Engine 1 - Faster and more reliable
 
       const response = await fetch("https://api.ocr.space/parse/image", {
         method: "POST",
         body: formData,
       });
 
+      console.log('OCR API Response Status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OCR API Error Response:', errorText);
+        throw new Error(`API returned ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
       const result = await response.json();
+      console.log('OCR API Result:', result);
 
       if (result.IsErroredOnProcessing) {
-        throw new Error(result.ErrorMessage || "OCR processing failed");
+        const errorMsg = result.ErrorMessage?.[0] || result.ErrorMessage || "OCR processing failed";
+        console.error('OCR Processing Error:', errorMsg);
+        console.error('Full Error Details:', result);
+        throw new Error(errorMsg);
       }
 
       const text = result.ParsedResults?.[0]?.ParsedText || "";
       setExtractedText(text);
 
+      if (!text || text.trim().length === 0) {
+        toast.warning("⚠️ No text detected in image. Try a clearer photo with better lighting.");
+        console.warn("No text detected. Image may be too blurry, dark, or doesn't contain text.");
+        return;
+      }
+
       // Parse the extracted text
       const parsed = parseBusinessCard(text);
       setParsedData(parsed);
 
-      toast.success("✅ Text extracted successfully!");
+      toast.success(`✅ Text extracted successfully! (${text.length} characters)`);
     } catch (error: any) {
       console.error("OCR error:", error);
       toast.error(error.message || "Failed to extract text");
