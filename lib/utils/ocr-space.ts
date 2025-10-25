@@ -42,12 +42,17 @@ async function compressImageForOCR(dataUrl: string): Promise<string> {
 
 export async function extractTextFromImage(imageDataUrl: string): Promise<string> {
   try {
-    // Compress image to prevent timeouts and reduce API load
-    const compressedImage = await compressImageForOCR(imageDataUrl);
+    // Check if image is already compressed (small enough)
+    // If dataURL is > 1.5MB, compress it first
+    const needsCompression = imageDataUrl.length > 1500000;
+    const imageToSend = needsCompression ? await compressImageForOCR(imageDataUrl) : imageDataUrl;
+    
+    const sizeKB = Math.round(imageToSend.length / 1024);
+    console.log(`Sending to OCR: ${sizeKB} KB (compressed: ${needsCompression})`);
     
     // Use base64 string directly to avoid file type detection issues
     const formData = new FormData();
-    formData.append("base64Image", compressedImage);
+    formData.append("base64Image", imageToSend);
     formData.append("apikey", process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY || "K83480352388957");
     formData.append("language", "eng");
     formData.append("isOverlayRequired", "false");
@@ -68,7 +73,8 @@ export async function extractTextFromImage(imageDataUrl: string): Promise<string
     const result = await response.json();
 
     if (result.IsErroredOnProcessing) {
-      throw new Error(result.ErrorMessage || "OCR processing failed");
+      const errorMessage = result.ErrorMessage?.[0] || result.ErrorMessage || "OCR processing failed";
+      throw new Error(errorMessage);
     }
 
     const extractedText = result.ParsedResults?.[0]?.ParsedText || "";

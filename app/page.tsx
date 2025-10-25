@@ -311,9 +311,8 @@ export default function Dashboard() {
         const count = formData.productMediaItems.length + 1;
         toast.success(`Product ${type} ${count} uploaded!`, { id: uploadToastId });
       } else if (currentCaptureTarget === 'card') {
-        // Compress image before upload for faster OCR
-        const compressed = await compressImage(dataUrl, 1280, 0.8);
-        const uploadResult = await uploadMediaToStorage(compressed, 'photo', user.id);
+        // Upload original image (OCR will compress it itself)
+        const uploadResult = await uploadMediaToStorage(dataUrl, 'photo', user.id);
         
         setFormData(prev => ({
           ...prev,
@@ -326,9 +325,9 @@ export default function Dashboard() {
         // Clear processing state BEFORE starting OCR
         setProcessing(false);
         
-        // Trigger OCR automatically - use compressed image for faster processing
+        // Trigger OCR automatically - use ORIGINAL image (OCR compresses internally)
         setTimeout(async () => {
-          await processVisitingCardOCR(compressed);
+          await processVisitingCardOCR(dataUrl);
         }, 500);
         
         // Don't set currentCaptureTarget to null yet for card
