@@ -720,7 +720,7 @@ export default function Dashboard() {
             {filteredCaptures.map((capture) => (
               <Card 
                 key={capture.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer relative"
+                className="hover:shadow-lg transition-shadow cursor-pointer relative overflow-hidden"
                 onClick={() => handleCaptureClick(capture)}
               >
                 <Button
@@ -732,9 +732,9 @@ export default function Dashboard() {
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 <CardContent className="p-4 pr-12">
-                  <div className="flex gap-4 items-start">
+                  <div className="flex gap-3 items-start overflow-hidden">
                     {capture.mediaItems && capture.mediaItems.length > 0 && (
-                      <div className="w-20 h-20 flex-shrink-0 relative">
+                      <div className="w-16 h-16 flex-shrink-0 relative">
                         <img
                           src={capture.mediaItems[0].thumbUrl || capture.mediaItems[0].url}
                           alt={capture.productName}
@@ -743,22 +743,22 @@ export default function Dashboard() {
                         {/* Video indicator badge */}
                         {capture.mediaItems[0].type === 'video' && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                            <Video className="h-6 w-6 text-white drop-shadow-lg" />
+                            <Video className="h-5 w-5 text-white drop-shadow-lg" />
                           </div>
                         )}
                         {capture.mediaItems.length > 1 && (
-                          <div className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                          <div className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-xs px-1 py-0.5 rounded text-[10px]">
                             +{capture.mediaItems.length - 1}
                           </div>
                         )}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg text-slate-900 truncate">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <h3 className="font-semibold text-base text-slate-900 truncate break-all">
                         {capture.productName || 'Untitled Capture'}
                       </h3>
                       {capture.remarks && (
-                        <p className="text-sm text-slate-600 line-clamp-2 mt-1">
+                        <p className="text-sm text-slate-600 line-clamp-2 mt-1 break-words">
                           {capture.remarks}
                         </p>
                       )}
@@ -768,13 +768,13 @@ export default function Dashboard() {
                           {[capture.pocCompany, capture.pocName].filter(Boolean).join(' • ')}
                         </p>
                       )}
-                      <p className="text-xs text-slate-400 mt-2">
+                      <p className="text-xs text-slate-400 mt-2 truncate">
                         {new Date(capture.createdAt).toLocaleString()}
                       </p>
                     </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
             
             {/* Load More Button */}
