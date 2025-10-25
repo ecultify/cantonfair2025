@@ -735,17 +735,16 @@ export default function Dashboard() {
                   <div className="flex gap-4 items-start">
                     {capture.mediaItems && capture.mediaItems.length > 0 && (
                       <div className="w-20 h-20 flex-shrink-0 relative">
-                        {capture.mediaItems[0].type === 'photo' ? (
-                          <img
-                            src={capture.mediaItems[0].thumbUrl || capture.mediaItems[0].url}
-                            alt={capture.productName}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          <video
-                            src={capture.mediaItems[0].url}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
+                        <img
+                          src={capture.mediaItems[0].thumbUrl || capture.mediaItems[0].url}
+                          alt={capture.productName}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        {/* Video indicator badge */}
+                        {capture.mediaItems[0].type === 'video' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                            <Video className="h-6 w-6 text-white drop-shadow-lg" />
+                          </div>
                         )}
                         {capture.mediaItems.length > 1 && (
                           <div className="absolute bottom-0.5 right-0.5 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
