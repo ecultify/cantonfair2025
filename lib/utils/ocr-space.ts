@@ -4,12 +4,9 @@
 
 export async function extractTextFromImage(imageDataUrl: string): Promise<string> {
   try {
-    // Convert data URL to blob
-    const blob = await fetch(imageDataUrl).then(r => r.blob());
-    
-    // Create form data
+    // Use base64 string directly to avoid file type detection issues
     const formData = new FormData();
-    formData.append("file", blob, "business-card.jpg");
+    formData.append("base64Image", imageDataUrl);
     formData.append("apikey", process.env.NEXT_PUBLIC_OCR_SPACE_API_KEY || "K87711251188957");
     formData.append("language", "eng");
     formData.append("isOverlayRequired", "false");
