@@ -388,12 +388,15 @@ export const dexieAdapter: DataAdapter = {
 
   // NEW: Quick Captures implementation
   quickCaptures: {
-    async findAll(userId: string) {
-      return await getDb().quickCaptures
+    async findAll(userId: string, limit: number = 20, offset: number = 0) {
+      const all = await getDb().quickCaptures
         .where('userId')
         .equals(userId)
         .reverse()
         .sortBy('createdAt');
+      
+      // Apply pagination manually for Dexie
+      return all.slice(offset, offset + limit);
     },
 
     async findById(id: string) {

@@ -975,13 +975,14 @@ export const supabaseAdapter: DataAdapter = {
   },
 
   quickCaptures: {
-    async findAll(userId: string) {
+    async findAll(userId: string, limit: number = 20, offset: number = 0) {
       // @ts-ignore
       const { data, error } = await supabase
         .from("quick_captures")
         .select("*")
-        // Removed .eq("user_id", userId) to show all captures to all users
-        .order("created_at", { ascending: false });
+        // Show all captures to all authenticated users (public access)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) throw error;
       return (data || []).map((row: any) => ({

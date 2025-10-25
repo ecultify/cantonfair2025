@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth/context";
 import { dataService } from "@/lib/data";
 import { extractTextFromImage } from "@/lib/utils/ocr-space";
+import { uploadMediaToStorage, compressImage } from "@/lib/utils/media-upload";
 import { MediaCapture } from "@/components/media-capture";
 import {
   Package,
@@ -96,8 +97,18 @@ export default function Dashboard() {
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const ITEMS_PER_PAGE = 20;
+  
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Ref to prevent reload on browser refocus
+  const isInitialLoad = useRef(true);
+  const hasLoadedOnce = useRef(false);
 
   // Quick Add Form State
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -147,31 +158,61 @@ export default function Dashboard() {
     }
   };
 
-  const loadQuickCaptures = async () => {
+  const loadQuickCaptures = async (reset = false) => {
     if (!user) {
       setLoading(false);
+      hasLoadedOnce.current = true;
       return;
     }
     try {
-      setLoading(true);
-      const data = await dataService.quickCaptures.findAll(user.id);
-      setQuickCaptures(data as QuickCapture[]);
+      // Only show full page loading on initial load
+      if (reset && !hasLoadedOnce.current) {
+        setLoading(true);
+      }
+      if (reset) {
+        setPage(0);
+      }
+      
+      const offset = reset ? 0 : page * ITEMS_PER_PAGE;
+      const data = await dataService.quickCaptures.findAll(user.id, ITEMS_PER_PAGE, offset);
+      
+      if (reset) {
+        setQuickCaptures(data as QuickCapture[]);
+      } else {
+        setQuickCaptures(prev => [...prev, ...data as QuickCapture[]]);
+      }
+      
+      // Check if there are more items to load
+      setHasMore(data.length === ITEMS_PER_PAGE);
     } catch (error) {
       console.error("Load error:", error);
       toast.error("Failed to load quick captures");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+      hasLoadedOnce.current = true;
     }
+  };
+
+  const loadMoreCaptures = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    setPage(nextPage);
+    await loadQuickCaptures(false);
   };
 
   useEffect(() => {
     let mounted = true;
     
     async function init() {
-      if (isAuthenticated && user && mounted) {
-        await loadQuickCaptures();
+      // Only load on initial mount OR when user changes (login/logout)
+      // Prevents reload when browser regains focus
+      if (isAuthenticated && user && mounted && isInitialLoad.current) {
+        isInitialLoad.current = false;
+        await loadQuickCaptures(true);
         await checkAdminStatus();
-      } else if (mounted) {
+      } else if (mounted && !isAuthenticated) {
         setLoading(false);
       }
     }
@@ -227,36 +268,59 @@ export default function Dashboard() {
   };
 
   const handleMediaCapture = async (dataUrl: string, type: 'photo' | 'video') => {
-    if (currentCaptureTarget === 'product') {
-      // Add the new media item to the array
-      const newMediaItem: MediaItem = {
-        type,
-        url: dataUrl,
-        thumbUrl: type === 'photo' ? dataUrl : "",
-      };
-      
-      setFormData(prev => ({
-        ...prev,
-        productMediaItems: [...prev.productMediaItems, newMediaItem],
-      }));
-      
-      const count = formData.productMediaItems.length + 1;
-      toast.success(`Product ${type} ${count} captured!`);
-    } else if (currentCaptureTarget === 'card') {
-      setFormData(prev => ({
-        ...prev,
-        visitingCardUrl: dataUrl,
-      }));
-      
-      // Automatically extract details from visiting card
-      toast.success("Visiting card captured! Extracting details...");
-      
-      // Trigger OCR automatically
-      setTimeout(async () => {
-        await processVisitingCardOCR(dataUrl);
-      }, 500);
+    if (!user) {
+      toast.error("Not authenticated");
+      return;
     }
-    setCurrentCaptureTarget(null);
+
+    try {
+      setProcessing(true);
+      
+      if (currentCaptureTarget === 'product') {
+        // Upload to Supabase Storage
+        toast.info(`Uploading ${type}...`);
+        const uploadResult = await uploadMediaToStorage(dataUrl, type, user.id);
+        
+        // Add the new media item with public URLs
+        const newMediaItem: MediaItem = {
+          type,
+          url: uploadResult.url,
+          thumbUrl: uploadResult.thumbUrl || (type === 'photo' ? uploadResult.url : undefined),
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          productMediaItems: [...prev.productMediaItems, newMediaItem],
+        }));
+        
+        const count = formData.productMediaItems.length + 1;
+        toast.success(`Product ${type} ${count} uploaded!`);
+      } else if (currentCaptureTarget === 'card') {
+        // Compress image before upload for faster OCR
+        toast.info("Uploading visiting card...");
+        const compressed = await compressImage(dataUrl, 1280, 0.8);
+        const uploadResult = await uploadMediaToStorage(compressed, 'photo', user.id);
+        
+        setFormData(prev => ({
+          ...prev,
+          visitingCardUrl: uploadResult.url,
+        }));
+        
+        // Automatically extract details from visiting card
+        toast.success("Visiting card uploaded! Extracting details...");
+        
+        // Trigger OCR automatically - use compressed image for faster processing
+        setTimeout(async () => {
+          await processVisitingCardOCR(compressed);
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload media. Please try again.");
+    } finally {
+      setProcessing(false);
+      setCurrentCaptureTarget(null);
+    }
   };
 
   const processVisitingCardOCR = async (imageUrl: string) => {
@@ -433,7 +497,8 @@ export default function Dashboard() {
       toast.success("Quick capture saved successfully!");
       setShowQuickAdd(false);
       resetForm();
-      await loadQuickCaptures(); // Refresh the list
+      isInitialLoad.current = true; // Allow reload
+      await loadQuickCaptures(true); // Refresh the list from beginning
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save quick capture");
@@ -468,7 +533,8 @@ export default function Dashboard() {
       toast.success("Capture deleted successfully!");
       setShowDeleteDialog(false);
       setCaptureToDelete(null);
-      await loadQuickCaptures(); // Refresh the list
+      isInitialLoad.current = true; // Allow reload
+      await loadQuickCaptures(true); // Refresh the list from beginning
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete capture");
@@ -477,7 +543,8 @@ export default function Dashboard() {
     }
   };
 
-  if (loading || authLoading) {
+  // Only show full-screen loading on initial load, not on refocus/background return
+  if ((loading || authLoading) && !hasLoadedOnce.current) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="text-center">
@@ -690,37 +757,47 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-lg text-slate-900 truncate">
                         {capture.productName || 'Untitled Capture'}
-                        </h3>
+                      </h3>
                       {capture.remarks && (
                         <p className="text-sm text-slate-600 line-clamp-2 mt-1">
                           {capture.remarks}
                         </p>
-                        )}
-                        <div className="flex flex-wrap gap-2 mt-2">
-                        {capture.pocCompany && (
-                            <Badge variant="outline" className="text-xs">
-                            {capture.pocCompany}
-                          </Badge>
-                        )}
-                        {capture.pocName && (
-                          <Badge variant="default" className="text-xs">
-                            {capture.pocName}
-                            </Badge>
-                          )}
-                        {capture.pocCity && (
-                          <Badge variant="secondary" className="text-xs">
-                            {capture.pocCity}
-                            </Badge>
-                        )}
-                        </div>
-                        <p className="text-xs text-slate-400 mt-2">
-                        {new Date(capture.createdAt).toLocaleString()}
+                      )}
+                      {/* Show company/name as simple text instead of badges for mobile */}
+                      {(capture.pocCompany || capture.pocName) && (
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {[capture.pocCompany, capture.pocName].filter(Boolean).join(' • ')}
                         </p>
-                      </div>
+                      )}
+                      <p className="text-xs text-slate-400 mt-2">
+                        {new Date(capture.createdAt).toLocaleString()}
+                      </p>
+                    </div>
                     </div>
                   </CardContent>
                 </Card>
             ))}
+            
+            {/* Load More Button */}
+            {hasMore && !searchQuery && (
+              <div className="flex justify-center mt-6">
+                <Button
+                  onClick={loadMoreCaptures}
+                  disabled={loadingMore}
+                  variant="outline"
+                  className="w-full max-w-md"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2"></div>
+                      Loading more...
+                    </>
+                  ) : (
+                    'Load More'
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

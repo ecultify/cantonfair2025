@@ -63,7 +63,7 @@ export interface DataAdapter {
     delete: (id: string) => Promise<void>;
   };
   quickCaptures: {
-    findAll: (userId: string) => Promise<QuickCapture[]>;
+    findAll: (userId: string, limit?: number, offset?: number) => Promise<QuickCapture[]>;
     findById: (id: string) => Promise<QuickCapture | null>;
     create: (capture: CreateQuickCaptureInput) => Promise<QuickCapture>;
     update: (id: string, capture: Partial<QuickCapture>) => Promise<QuickCapture>;
