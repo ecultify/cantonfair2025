@@ -16,6 +16,7 @@ export default function TestOCRPage() {
   const [extractedText, setExtractedText] = useState<string>("");
   const [parsedData, setParsedData] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
+  const [ocrEngine, setOcrEngine] = useState<"1" | "2">("1");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -85,7 +86,7 @@ export default function TestOCRPage() {
       const compressedImage = await compressImage(imagePreview);
       const sizeKB = Math.round(compressedImage.length / 1024);
       
-      toast.info(`Extracting text (${sizeKB} KB)...`);
+      toast.info(`Extracting text with Engine ${ocrEngine} (${sizeKB} KB)...`);
 
       // Use base64Image parameter to avoid file type detection issues
       const formData = new FormData();
@@ -96,7 +97,7 @@ export default function TestOCRPage() {
       formData.append("isOverlayRequired", "false");
       formData.append("detectOrientation", "true");
       formData.append("scale", "true");
-      formData.append("OCREngine", "1"); // Engine 1 - Faster and more reliable
+      formData.append("OCREngine", ocrEngine);
 
       const response = await fetch("https://api.ocr.space/parse/image", {
         method: "POST",
@@ -134,7 +135,8 @@ export default function TestOCRPage() {
       const parsed = parseBusinessCard(text);
       setParsedData(parsed);
 
-      toast.success(`✅ Text extracted successfully! (${text.length} characters)`);
+      const processingTime = result.ProcessingTimeInMilliseconds || 0;
+      toast.success(`✅ Engine ${ocrEngine}: ${text.length} characters extracted in ${processingTime}ms`);
     } catch (error: any) {
       console.error("OCR error:", error);
       toast.error(error.message || "Failed to extract text");
@@ -247,6 +249,39 @@ export default function TestOCRPage() {
                 </Label>
               </div>
 
+              {/* OCR Engine Selection */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">OCR Engine</Label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ocrEngine"
+                      value="1"
+                      checked={ocrEngine === "1"}
+                      onChange={(e) => setOcrEngine(e.target.value as "1" | "2")}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      Engine 1 <span className="text-xs text-slate-500">(Faster)</span>
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="ocrEngine"
+                      value="2"
+                      checked={ocrEngine === "2"}
+                      onChange={(e) => setOcrEngine(e.target.value as "1" | "2")}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm">
+                      Engine 2 <span className="text-xs text-slate-500">(More Accurate)</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <Button
                 onClick={extractTextWithOCRSpace}
                 disabled={!imageFile || processing}
@@ -261,7 +296,7 @@ export default function TestOCRPage() {
                 ) : (
                   <>
                     <FileText className="h-4 w-4 mr-2" />
-                    Extract Text
+                    Extract Text with Engine {ocrEngine}
                   </>
                 )}
               </Button>
