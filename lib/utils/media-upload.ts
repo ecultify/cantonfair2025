@@ -91,6 +91,10 @@ export async function uploadMediaToStorage(
   try {
     // Convert data URL to blob
     const blob = dataURLtoBlob(dataURL);
+    const sizeKB = Math.round(blob.size / 1024);
+    const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+    
+    console.log(`Uploading ${type}: ${sizeKB} KB (${sizeMB} MB)`);
     
     // Generate unique filename
     const timestamp = Date.now();
@@ -99,6 +103,9 @@ export async function uploadMediaToStorage(
     const filename = `${userId}/${timestamp}-${random}.${extension}`;
     
     // Upload main file
+    console.log(`Starting upload to Supabase: ${filename}`);
+    const uploadStartTime = Date.now();
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('canton-fair-media')
       .upload(filename, blob, {
@@ -106,6 +113,9 @@ export async function uploadMediaToStorage(
         cacheControl: '3600',
         upsert: false
       });
+    
+    const uploadTime = Date.now() - uploadStartTime;
+    console.log(`Upload completed in ${uploadTime}ms`);
     
     if (uploadError) {
       console.error('Upload error:', uploadError);

@@ -281,12 +281,19 @@ export default function Dashboard() {
       return;
     }
 
+    // Calculate file size for user feedback
+    const sizeKB = Math.round(dataUrl.length / 1024);
+    const sizeMB = (sizeKB / 1024).toFixed(2);
+    const sizeText = sizeKB > 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+    
+    // Create a persistent loading toast with file size
+    const uploadToastId = toast.loading(`Uploading ${type} (${sizeText})...`);
+
     try {
       setProcessing(true);
       
       if (currentCaptureTarget === 'product') {
-        // Upload to Supabase Storage
-        toast.info(`Uploading ${type}...`);
+        // Upload to Supabase Storage with persistent toast
         const uploadResult = await uploadMediaToStorage(dataUrl, type, user.id);
         
         // Add the new media item with public URLs
@@ -302,10 +309,9 @@ export default function Dashboard() {
         }));
         
         const count = formData.productMediaItems.length + 1;
-        toast.success(`Product ${type} ${count} uploaded!`);
+        toast.success(`Product ${type} ${count} uploaded!`, { id: uploadToastId });
       } else if (currentCaptureTarget === 'card') {
         // Compress image before upload for faster OCR
-        toast.info("Uploading visiting card...");
         const compressed = await compressImage(dataUrl, 1280, 0.8);
         const uploadResult = await uploadMediaToStorage(compressed, 'photo', user.id);
         
@@ -314,17 +320,23 @@ export default function Dashboard() {
           visitingCardUrl: uploadResult.url,
         }));
         
-        // Automatically extract details from visiting card
-        toast.success("Visiting card uploaded! Extracting details...");
+        // Dismiss upload toast and show OCR started
+        toast.success("Visiting card uploaded!", { id: uploadToastId });
+        
+        // Clear processing state BEFORE starting OCR
+        setProcessing(false);
         
         // Trigger OCR automatically - use compressed image for faster processing
         setTimeout(async () => {
           await processVisitingCardOCR(compressed);
         }, 500);
+        
+        // Don't set currentCaptureTarget to null yet for card
+        return;
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload media. Please try again.");
+      toast.error("Failed to upload media. Please try again.", { id: uploadToastId });
     } finally {
       setProcessing(false);
       setCurrentCaptureTarget(null);
@@ -474,6 +486,7 @@ export default function Dashboard() {
       toast.error("Could not extract details. Please fill manually.");
     } finally {
       setOcrProcessing(false);
+      setCurrentCaptureTarget(null); // Clear capture target after OCR completes
     }
   };
 
@@ -1066,10 +1079,10 @@ export default function Dashboard() {
                 type="submit"
                 size="lg"
                 className="w-full"
-              disabled={saving || processing}
+              disabled={saving || processing || ocrProcessing}
               onClick={handleSubmitQuickCapture}
               >
-                {saving ? "Saving..." : "Save Quick Capture"}
+                {saving ? "Saving..." : ocrProcessing ? "Extracting details..." : "Save Quick Capture"}
               </Button>
             </div>
         </DialogContent>

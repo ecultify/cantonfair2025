@@ -34,7 +34,7 @@ export default function TestOCRPage() {
     }
   };
 
-  const compressImage = async (dataUrl: string): Promise<string> => {
+  const compressImage = async (dataUrl: string, engineType: "1" | "2" = "1"): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -42,9 +42,11 @@ export default function TestOCRPage() {
         let width = img.width;
         let height = img.height;
         
-        // OPTIMIZED: Balance between size and readability
-        // Keep decent resolution for text recognition
-        const maxDimension = 1280; // Increased from 1024 for better text clarity
+        // Engine 2 requires smaller images to avoid timeout on free tier
+        // Engine 1 can handle larger images
+        const maxDimension = engineType === "2" ? 800 : 1280;
+        const quality = engineType === "2" ? 0.7 : 0.8;
+        
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
             height = Math.round((height * maxDimension) / width);
@@ -61,8 +63,7 @@ export default function TestOCRPage() {
         
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          // Increase quality for better text recognition (0.8 is a good balance)
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          resolve(canvas.toDataURL('image/jpeg', quality));
         } else {
           reject(new Error('Failed to get canvas context'));
         }
@@ -82,11 +83,12 @@ export default function TestOCRPage() {
       setProcessing(true);
       toast.info("Compressing image...");
 
-      // Compress image to reduce size and processing time
-      const compressedImage = await compressImage(imagePreview);
+      // Compress image - Engine 2 requires smaller size to avoid timeout
+      const compressedImage = await compressImage(imagePreview, ocrEngine);
       const sizeKB = Math.round(compressedImage.length / 1024);
       
-      toast.info(`Extracting text with Engine ${ocrEngine} (${sizeKB} KB)...`);
+      const engineNote = ocrEngine === "2" ? " (reduced size for Engine 2)" : "";
+      toast.info(`Extracting text with Engine ${ocrEngine} (${sizeKB} KB${engineNote})...`);
 
       // Use base64Image parameter to avoid file type detection issues
       const formData = new FormData();
