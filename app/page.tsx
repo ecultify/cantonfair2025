@@ -136,15 +136,6 @@ export default function Dashboard() {
 
   const [currentCaptureTarget, setCurrentCaptureTarget] = useState<'product' | 'card' | null>(null);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadQuickCaptures();
-      checkAdminStatus();
-    } else {
-      setLoading(false);
-    }
-  }, [isAuthenticated, user]);
-
   const checkAdminStatus = async () => {
     if (!user) return;
     try {
@@ -157,7 +148,10 @@ export default function Dashboard() {
   };
 
   const loadQuickCaptures = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await dataService.quickCaptures.findAll(user.id);
@@ -169,6 +163,25 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    
+    async function init() {
+      if (isAuthenticated && user && mounted) {
+        await loadQuickCaptures();
+        await checkAdminStatus();
+      } else if (mounted) {
+        setLoading(false);
+      }
+    }
+    
+    init();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, user]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
