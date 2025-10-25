@@ -169,12 +169,17 @@ export default function Dashboard() {
       if (reset && !hasLoadedOnce.current) {
         setLoading(true);
       }
+      
+      // Reset pagination state
       if (reset) {
         setPage(0);
+        setHasMore(true);
       }
       
       const offset = reset ? 0 : page * ITEMS_PER_PAGE;
       const data = await dataService.quickCaptures.findAll(user.id, ITEMS_PER_PAGE, offset);
+      
+      console.log(`Loaded ${data.length} captures (reset: ${reset}, offset: ${offset})`);
       
       if (reset) {
         setQuickCaptures(data as QuickCapture[]);
@@ -494,11 +499,12 @@ export default function Dashboard() {
         userId: user.id,
       });
 
+      // Refresh the list immediately
+      await loadQuickCaptures(true);
+      
       toast.success("Quick capture saved successfully!");
       setShowQuickAdd(false);
       resetForm();
-      isInitialLoad.current = true; // Allow reload
-      await loadQuickCaptures(true); // Refresh the list from beginning
     } catch (error) {
       console.error("Save error:", error);
       toast.error("Failed to save quick capture");
@@ -530,11 +536,13 @@ export default function Dashboard() {
     try {
       setProcessing(true);
       await dataService.quickCaptures.delete(captureToDelete.id);
+      
+      // Refresh the list immediately
+      await loadQuickCaptures(true);
+      
       toast.success("Capture deleted successfully!");
       setShowDeleteDialog(false);
       setCaptureToDelete(null);
-      isInitialLoad.current = true; // Allow reload
-      await loadQuickCaptures(true); // Refresh the list from beginning
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete capture");
