@@ -148,12 +148,39 @@ export function MediaCapture({
     }
   }, [isRecording]);
 
-  const handleConfirm = useCallback(() => {
+  const blobToDataURL = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const handleConfirm = useCallback(async () => {
     if (preview) {
-      onCapture(preview, captureMode);
+      let dataToSend = preview;
+      
+      // If it's a video with a blob URL, convert it to data URL
+      if (captureMode === 'video' && preview.startsWith('blob:')) {
+        try {
+          toast.info("Processing video...");
+          const response = await fetch(preview);
+          const blob = await response.blob();
+          dataToSend = await blobToDataURL(blob);
+          // Clean up the blob URL
+          URL.revokeObjectURL(preview);
+        } catch (error) {
+          console.error("Error converting video:", error);
+          toast.error("Failed to process video");
+          return;
+        }
+      }
+      
+      onCapture(dataToSend, captureMode);
       handleClose();
     }
-  }, [preview, captureMode, onCapture]);
+  }, [preview, captureMode, onCapture, handleClose]);
 
   const handleRetake = useCallback(() => {
     setPreview(null);

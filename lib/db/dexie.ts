@@ -141,10 +141,17 @@ export interface SyncQueue {
 export interface QuickCapture {
   id: string;
   
-  // Product Media
+  // Product Media (legacy single item support)
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
+  
+  // Product Media (new multiple items support)
+  mediaItems?: Array<{
+    type: 'photo' | 'video';
+    url: string;
+    thumbUrl?: string;
+  }>;
   
   // Remarks & Product Name
   productName?: string;
@@ -177,9 +184,16 @@ export interface QuickCapture {
 }
 
 export interface CreateQuickCaptureInput {
+  // Legacy single media support
   mediaType?: 'photo' | 'video';
   mediaUrl?: string;
   mediaThumbUrl?: string;
+  // New multiple media support
+  mediaItems?: Array<{
+    type: 'photo' | 'video';
+    url: string;
+    thumbUrl?: string;
+  }>;
   productName?: string;
   remarks?: string;
   visitingCardUrl?: string;
