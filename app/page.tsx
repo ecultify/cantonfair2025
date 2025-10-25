@@ -1081,7 +1081,19 @@ export default function Dashboard() {
               disabled={saving || processing || ocrProcessing}
               onClick={handleSubmitQuickCapture}
               >
-                {saving ? "Saving..." : ocrProcessing ? "Extracting details..." : "Save Quick Capture"}
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Saving...
+                  </>
+                ) : ocrProcessing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Extracting details...
+                  </>
+                ) : (
+                  "Save Quick Capture"
+                )}
               </Button>
             </div>
         </DialogContent>
@@ -1267,13 +1279,20 @@ export default function Dashboard() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              disabled={processing}
+              disabled={deleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {processing ? "Deleting..." : "Delete"}
+              {deleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
