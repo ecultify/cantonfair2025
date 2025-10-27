@@ -44,32 +44,50 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const mediaType = searchParams.get("type"); // 'video' or 'photo'
 
-    // Fetch all quick captures (bypassing RLS with service role key)
-    const { data: captures, error } = await supabase
-      .from("quick_captures")
-      .select("*")
-      .order("created_at", { ascending: false });
+    // Fetch quick captures with SQL filter to exclude blob URLs (much faster!)
+    // Use raw SQL for better performance
+    const { data: captures, error } = await supabase.rpc('get_valid_media_captures', {
+      limit_count: 1000
+    });
 
-    console.log("Captures query:", { count: captures?.length, error });
+    // If RPC function doesn't exist, fall back to regular query
+    let fallbackData: any[] = [];
+    if (error && error.message?.includes('function') && error.message?.includes('does not exist')) {
+      console.log("RPC function not found, using fallback query");
+      
+      // Fallback: fetch with limit and filter in code
+      const { data: allCaptures, error: fallbackError } = await supabase
+        .from("quick_captures")
+        .select("id, product_name, remarks, poc_name, poc_company, user_id, created_at, media_items, media_type, media_url, media_thumb_url")
+        .order("created_at", { ascending: false })
+        .limit(500); // Limit to prevent timeout
 
-    if (error) {
-      console.error("Error fetching media:", error);
-      return NextResponse.json({ 
-        error: "Failed to fetch media",
-        details: error.message 
-      }, { status: 500 });
+      if (fallbackError) {
+        console.error("Error fetching media:", fallbackError);
+        return NextResponse.json({ 
+          error: "Failed to fetch media",
+          details: fallbackError.message 
+        }, { status: 500 });
+      }
+
+      fallbackData = allCaptures || [];
     }
+
+    const capturesData = captures || fallbackData;
+    console.log("Captures query:", { count: capturesData?.length, error });
 
     // Process and filter media items
     const mediaItems: any[] = [];
+    let blobUrlCount = 0;
 
-    captures?.forEach((capture: any) => {
+    capturesData?.forEach((capture: any) => {
       // Handle new media_items array format
       if (capture.media_items && Array.isArray(capture.media_items) && capture.media_items.length > 0) {
         capture.media_items.forEach((item: any) => {
           // Skip blob URLs (old testing data)
-          if (item.url && item.url.startsWith('blob:')) {
-            return; // Skip this item
+          if (!item.url || item.url.startsWith('blob:')) {
+            if (item.url?.startsWith('blob:')) blobUrlCount++;
+            return;
           }
           
           if (!mediaType || item.type === mediaType) {
@@ -93,8 +111,9 @@ export async function GET(request: NextRequest) {
       // Handle legacy single media format (backward compatibility)
       if (capture.media_url && capture.media_type) {
         // Skip blob URLs (old testing data)
-        if (capture.media_url && capture.media_url.startsWith('blob:')) {
-          return; // Skip this capture
+        if (capture.media_url.startsWith('blob:')) {
+          blobUrlCount++;
+          return;
         }
         
         if (!mediaType || capture.media_type === mediaType) {
@@ -115,19 +134,8 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Count how many were filtered out
-    let blobUrlCount = 0;
-    captures?.forEach((capture: any) => {
-      if (capture.media_items && Array.isArray(capture.media_items)) {
-        capture.media_items.forEach((item: any) => {
-          if (item.url && item.url.startsWith('blob:')) blobUrlCount++;
-        });
-      }
-      if (capture.media_url && capture.media_url.startsWith('blob:')) blobUrlCount++;
-    });
-
     console.log("Media items processed:", { 
-      totalCaptures: captures?.length,
+      totalCaptures: capturesData?.length,
       mediaItemsFound: mediaItems.length,
       blobUrlsFiltered: blobUrlCount,
       mediaType 
