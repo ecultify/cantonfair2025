@@ -23,6 +23,7 @@ import {
   X,
   Camera,
   Video,
+  Film,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -699,6 +700,12 @@ export default function Dashboard() {
                       <DropdownMenuItem className="cursor-pointer">
                         <Shield className="h-4 w-4 mr-2" />
                         User Management
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link href="/admin/media">
+                      <DropdownMenuItem className="cursor-pointer">
+                        <Film className="h-4 w-4 mr-2" />
+                        Media Management
                       </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator />

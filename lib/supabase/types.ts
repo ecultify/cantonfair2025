@@ -416,6 +416,7 @@ export interface Database {
           media_type: string | null
           media_url: string | null
           media_thumb_url: string | null
+          media_items: Json | null
           product_name: string
           remarks: string | null
           visiting_card_url: string | null
@@ -433,6 +434,7 @@ export interface Database {
           media_type?: string | null
           media_url?: string | null
           media_thumb_url?: string | null
+          media_items?: Json | null
           product_name: string
           remarks?: string | null
           visiting_card_url?: string | null
@@ -450,6 +452,7 @@ export interface Database {
           media_type?: string | null
           media_url?: string | null
           media_thumb_url?: string | null
+          media_items?: Json | null
           product_name?: string
           remarks?: string | null
           visiting_card_url?: string | null
