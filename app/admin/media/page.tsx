@@ -188,12 +188,22 @@ export default function AdminMediaPage() {
                 {videos.map((video) => (
                   <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     <div className="aspect-video bg-black relative">
-                      <video
-                        src={video.url}
-                        poster={video.thumbUrl}
-                        controls
-                        className="w-full h-full object-contain"
-                      />
+                      {video.url && !video.url.startsWith('blob:') ? (
+                        <video
+                          src={video.url}
+                          poster={video.thumbUrl}
+                          controls
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-900 text-white text-sm p-4 text-center">
+                          <div>
+                            <Video className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-xs opacity-75">Video URL not available</p>
+                            <p className="text-xs opacity-50 mt-1">(Blob URL - file not in storage)</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">
@@ -257,11 +267,36 @@ export default function AdminMediaPage() {
                 {photos.map((photo) => (
                   <Card key={photo.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                     <div className="aspect-square bg-slate-100 relative">
-                      <img
-                        src={photo.url}
-                        alt={photo.productName}
-                        className="w-full h-full object-cover"
-                      />
+                      {photo.url && !photo.url.startsWith('blob:') ? (
+                        <img
+                          src={photo.url}
+                          alt={photo.productName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="w-full h-full flex items-center justify-center bg-slate-200 text-slate-600 text-sm p-4 text-center">
+                                  <div>
+                                    <div class="text-4xl mb-2">📷</div>
+                                    <p class="text-xs">Image not available</p>
+                                  </div>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-600 text-sm p-4 text-center">
+                          <div>
+                            <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-xs opacity-75">Image URL not available</p>
+                            <p className="text-xs opacity-50 mt-1">(Blob URL - file not in storage)</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2 mb-2">

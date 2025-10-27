@@ -67,6 +67,11 @@ export async function GET(request: NextRequest) {
       // Handle new media_items array format
       if (capture.media_items && Array.isArray(capture.media_items) && capture.media_items.length > 0) {
         capture.media_items.forEach((item: any) => {
+          // Skip blob URLs (old testing data)
+          if (item.url && item.url.startsWith('blob:')) {
+            return; // Skip this item
+          }
+          
           if (!mediaType || item.type === mediaType) {
             mediaItems.push({
               id: `${capture.id}_${item.url}`,
@@ -87,6 +92,11 @@ export async function GET(request: NextRequest) {
       
       // Handle legacy single media format (backward compatibility)
       if (capture.media_url && capture.media_type) {
+        // Skip blob URLs (old testing data)
+        if (capture.media_url && capture.media_url.startsWith('blob:')) {
+          return; // Skip this capture
+        }
+        
         if (!mediaType || capture.media_type === mediaType) {
           mediaItems.push({
             id: capture.id,
@@ -105,9 +115,21 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Count how many were filtered out
+    let blobUrlCount = 0;
+    captures?.forEach((capture: any) => {
+      if (capture.media_items && Array.isArray(capture.media_items)) {
+        capture.media_items.forEach((item: any) => {
+          if (item.url && item.url.startsWith('blob:')) blobUrlCount++;
+        });
+      }
+      if (capture.media_url && capture.media_url.startsWith('blob:')) blobUrlCount++;
+    });
+
     console.log("Media items processed:", { 
       totalCaptures: captures?.length,
       mediaItemsFound: mediaItems.length,
+      blobUrlsFiltered: blobUrlCount,
       mediaType 
     });
 
@@ -117,7 +139,8 @@ export async function GET(request: NextRequest) {
       count: mediaItems.length,
       debug: {
         totalCaptures: captures?.length,
-        mediaItemsProcessed: mediaItems.length
+        mediaItemsProcessed: mediaItems.length,
+        blobUrlsFiltered: blobUrlCount
       }
     });
 
