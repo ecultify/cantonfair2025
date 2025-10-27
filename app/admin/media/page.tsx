@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 import { dataService } from "@/lib/data";
+import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,25 +64,45 @@ export default function AdminMediaPage() {
 
   useEffect(() => {
     async function fetchMedia() {
-      if (!isAdmin) return;
+      if (!isAdmin || !user) return;
 
       try {
         setLoadingMedia(true);
         
+        // Get auth token from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+          console.error("No auth token available");
+          return;
+        }
+
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+        
         // Fetch videos
-        const videoResponse = await fetch("/api/admin/media?type=video");
+        const videoResponse = await fetch("/api/admin/media?type=video", { headers });
         const videoData = await videoResponse.json();
+        console.log("Video response:", videoData);
         
         // Fetch photos
-        const photoResponse = await fetch("/api/admin/media?type=photo");
+        const photoResponse = await fetch("/api/admin/media?type=photo", { headers });
         const photoData = await photoResponse.json();
+        console.log("Photo response:", photoData);
 
         if (videoData.success) {
           setVideos(videoData.data);
+        } else {
+          console.error("Video fetch failed:", videoData);
         }
         
         if (photoData.success) {
           setPhotos(photoData.data);
+        } else {
+          console.error("Photo fetch failed:", photoData);
         }
       } catch (error) {
         console.error("Error fetching media:", error);
@@ -90,10 +111,10 @@ export default function AdminMediaPage() {
       }
     }
 
-    if (isAdmin) {
+    if (isAdmin && user) {
       fetchMedia();
     }
-  }, [isAdmin]);
+  }, [isAdmin, user]);
 
   if (authLoading || loading) {
     return (
@@ -151,7 +172,15 @@ export default function AdminMediaPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Video className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="text-slate-500">No videos uploaded yet</p>
+                  <p className="text-slate-500 mb-4">No videos uploaded yet</p>
+                  <div className="text-xs text-slate-400 space-y-2 max-w-md mx-auto text-left">
+                    <p><strong>Troubleshooting:</strong></p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Check browser console (F12) for API errors</li>
+                      <li>Ensure admin RLS policy migration was applied</li>
+                      <li>Verify quick_captures table has data with media_items</li>
+                    </ul>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -212,7 +241,15 @@ export default function AdminMediaPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <ImageIcon className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p className="text-slate-500">No photos uploaded yet</p>
+                  <p className="text-slate-500 mb-4">No photos uploaded yet</p>
+                  <div className="text-xs text-slate-400 space-y-2 max-w-md mx-auto text-left">
+                    <p><strong>Troubleshooting:</strong></p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Check browser console (F12) for API errors</li>
+                      <li>Ensure admin RLS policy migration was applied</li>
+                      <li>Verify quick_captures table has data with media_items</li>
+                    </ul>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
